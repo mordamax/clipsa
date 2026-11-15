@@ -9,7 +9,7 @@ Each release has a section headed `## [X.Y.Z] - YYYY-MM-DD` (or
 section for the version being released as the GitHub release notes and as the
 "Release Notes" shown in Clipsa's update window, so write it for users.
 
-## [0.1.0] - Unreleased
+## [0.1.0] - 2026-11-15
 
 First public release.
 
