@@ -12,8 +12,8 @@
       "allow": [
         { "url": "https://clipsa.dev" },
         { "url": "https://clipsa.dev/*" },
-        { "url": "https://github.com/mordamax/clipsa.dev" },
-        { "url": "https://github.com/mordamax/clipsa.dev/*" }
+        { "url": "https://github.com/mordamax/clipsa" },
+        { "url": "https://github.com/mordamax/clipsa/*" }
       ]
     }
   ]

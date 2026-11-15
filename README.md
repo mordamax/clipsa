@@ -148,7 +148,7 @@ The installed app is a release build: it uses the real data directory and the ke
 1. Add the release notes to [`CHANGELOG.md`](./CHANGELOG.md) under `## [X.Y.Z] - YYYY-MM-DD` (Keep a Changelog style; `## [X.Y.Z] - Unreleased` while in progress). Write for users: this section becomes the GitHub release text and the "Release Notes" in Clipsa's update window. The release fails before building if the section for the version is missing or empty.
 2. Bump `version` in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `package.json`, then commit.
 3. Tag and push: `git tag v0.2.0 && git push origin v0.2.0`. The tag must match the version (`v` + version).
-4. The [Release workflow](./.github/workflows/release.yml) builds macOS (arm64 and x64), Linux and Windows, uploads the installers, updater bundles and `latest.json` (with the changelog section as `notes`) to a draft release, and publishes it once every build has succeeded. Installed apps then pick up the update from `https://github.com/mordamax/clipsa.dev/releases/latest/download/latest.json`.
+4. The [Release workflow](./.github/workflows/release.yml) builds macOS (arm64 and x64), Linux and Windows, uploads the installers, updater bundles and `latest.json` (with the changelog section as `notes`) to a draft release, and publishes it once every build has succeeded. Installed apps then pick up the update from `https://github.com/mordamax/clipsa/releases/latest/download/latest.json`.
 
 You can also start the workflow by hand from the Actions tab (`workflow_dispatch`). It uses the version in `tauri.conf.json`. See [docs/deployment.md](./docs/deployment.md#release-notes) for the release notes format.
 
@@ -209,7 +209,7 @@ clipsa/
 
 ## Reporting security issues
 
-Please report vulnerabilities privately through [GitHub security advisories](https://github.com/mordamax/clipsa.dev/security/advisories/new) rather than public issues.
+Please report vulnerabilities privately through [GitHub security advisories](https://github.com/mordamax/clipsa/security/advisories/new) rather than public issues.
 
 ## License
 

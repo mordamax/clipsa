@@ -46,7 +46,7 @@
   ];
   const LINKS: [string, string, string][] = [
     ['Website', 'clipsa.dev', 'https://clipsa.dev'],
-    ['Source code', 'github.com/mordamax/clipsa.dev', 'https://github.com/mordamax/clipsa.dev'],
+    ['Source code', 'github.com/mordamax/clipsa', 'https://github.com/mordamax/clipsa'],
     ['Privacy policy', 'clipsa.dev/privacy', 'https://clipsa.dev/privacy']
   ];
   const SECTION_INFO: Record<SettingsSection, string> = {

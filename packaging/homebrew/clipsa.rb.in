@@ -7,8 +7,8 @@ cask "clipsa" do
   sha256 arm:   "@SHA256_ARM@",
          intel: "@SHA256_INTEL@"
 
-  url "https://github.com/mordamax/clipsa.dev/releases/download/v#{version}/Clipsa_#{version}_#{arch}.dmg",
-      verified: "github.com/mordamax/clipsa.dev/"
+  url "https://github.com/mordamax/clipsa/releases/download/v#{version}/Clipsa_#{version}_#{arch}.dmg",
+      verified: "github.com/mordamax/clipsa/"
   name "Clipsa"
   desc "Private, encrypted clipboard history manager"
   homepage "https://clipsa.dev"

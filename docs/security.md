@@ -57,4 +57,4 @@ The only network traffic is the update check (`check_for_updates`), which is off
 
 ## Reporting vulnerabilities
 
-Use [GitHub private security advisories](https://github.com/mordamax/clipsa.dev/security/advisories/new). Please do not open public issues for vulnerabilities.
+Use [GitHub private security advisories](https://github.com/mordamax/clipsa/security/advisories/new). Please do not open public issues for vulnerabilities.

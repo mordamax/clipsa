@@ -51,7 +51,7 @@ Triggered by pushing a `v*` tag, or manually with `workflow_dispatch`.
    - Windows: `windows-latest`
 
    Each job runs `tauri-apps/tauri-action@v0` with `--config src-tauri/tauri.release.conf.json`. It uploads installers, updater bundles and `.sig` files to a **draft** release `v<version>`, where the version comes from `tauri.conf.json`, and merges each platform's entry into `latest.json`. The release notes are passed as `releaseBody`, which tauri-action uses both as the GitHub release text and as the `notes` field of `latest.json`.
-3. **publish**: runs only if every build succeeded and makes the draft public (`gh release edit --draft=false --latest`). From that moment `https://github.com/mordamax/clipsa.dev/releases/latest/download/latest.json` serves the new version to the in-app updater.
+3. **publish**: runs only if every build succeeded and makes the draft public (`gh release edit --draft=false --latest`). From that moment `https://github.com/mordamax/clipsa/releases/latest/download/latest.json` serves the new version to the in-app updater.
 
 If any build fails, the release stays a draft and no user receives the update. Fix the problem, delete the draft, and re-run.
 

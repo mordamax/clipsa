@@ -3,8 +3,8 @@
 ## Setup
 
 ```bash
-git clone https://github.com/mordamax/clipsa.dev.git
-cd clipsa.dev
+git clone https://github.com/mordamax/clipsa.git
+cd clipsa
 pnpm install
 pnpm tauri dev
 ```
@@ -46,4 +46,4 @@ See [deployment.md](./deployment.md).
 
 ## Security issues
 
-Report vulnerabilities through [GitHub private security advisories](https://github.com/mordamax/clipsa.dev/security/advisories/new), not public issues.
+Report vulnerabilities through [GitHub private security advisories](https://github.com/mordamax/clipsa/security/advisories/new), not public issues.
