@@ -1,0 +1,198 @@
+name: Mac App Store
+
+# Builds the sandboxed App Store edition (cargo feature `app-store`, see
+# src-tauri/tauri.appstore.conf.json), signs it with the Apple Distribution
+# certificate, wraps it in a signed installer package and uploads it to App
+# Store Connect, where it shows up in TestFlight after processing.
+# Setup (certificates, profile, API key, secrets): docs/deployment.md →
+# "Mac App Store".
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: CFBundleVersion; must be unique per app version in App Store Connect (default = workflow run number)
+        required: false
+        default: ''
+      upload:
+        description: Upload to App Store Connect (off = only attach the .pkg to this run)
+        type: boolean
+        default: true
+
+concurrency:
+  group: appstore-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  appstore:
+    name: Build, sign and upload
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets
+        shell: bash
+        env:
+          APPSTORE_CERTIFICATE: ${{ secrets.APPSTORE_CERTIFICATE }}
+          APPSTORE_CERTIFICATE_PASSWORD: ${{ secrets.APPSTORE_CERTIFICATE_PASSWORD }}
+          APPSTORE_SIGNING_IDENTITY: ${{ secrets.APPSTORE_SIGNING_IDENTITY }}
+          APPSTORE_INSTALLER_CERTIFICATE: ${{ secrets.APPSTORE_INSTALLER_CERTIFICATE }}
+          APPSTORE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPSTORE_INSTALLER_CERTIFICATE_PASSWORD }}
+          APPSTORE_INSTALLER_IDENTITY: ${{ secrets.APPSTORE_INSTALLER_IDENTITY }}
+          APPSTORE_PROVISIONING_PROFILE: ${{ secrets.APPSTORE_PROVISIONING_PROFILE }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+          APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+          UPLOAD: ${{ inputs.upload }}
+        run: |
+          required=(
+            APPSTORE_CERTIFICATE APPSTORE_CERTIFICATE_PASSWORD APPSTORE_SIGNING_IDENTITY
+            APPSTORE_INSTALLER_CERTIFICATE APPSTORE_INSTALLER_CERTIFICATE_PASSWORD APPSTORE_INSTALLER_IDENTITY
+            APPSTORE_PROVISIONING_PROFILE APPLE_TEAM_ID
+          )
+          if [ "$UPLOAD" = "true" ]; then
+            required+=(APPSTORE_API_KEY_ID APPSTORE_API_ISSUER_ID APPSTORE_API_PRIVATE_KEY)
+          fi
+          missing=()
+          for name in "${required[@]}"; do
+            [ -n "${!name}" ] || missing+=("$name")
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing secrets for the App Store build: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: appstore-universal
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Write entitlements and provisioning profile
+        shell: bash
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPSTORE_PROVISIONING_PROFILE: ${{ secrets.APPSTORE_PROVISIONING_PROFILE }}
+        run: |
+          sed "s/\$(TEAM_ID)/$APPLE_TEAM_ID/g" src-tauri/appstore/Entitlements.plist.template \
+            > src-tauri/appstore/Entitlements.plist
+          plutil -lint src-tauri/appstore/Entitlements.plist
+          if grep -q 'TEAM_ID' src-tauri/appstore/Entitlements.plist; then
+            echo "::error::Entitlements.plist still contains a TEAM_ID placeholder"
+            exit 1
+          fi
+          echo "$APPSTORE_PROVISIONING_PROFILE" | base64 --decode > src-tauri/appstore/embedded.provisionprofile
+          security cms -D -i src-tauri/appstore/embedded.provisionprofile > "$RUNNER_TEMP/profile.plist"
+          echo "Provisioning profile: $(/usr/libexec/PlistBuddy -c 'Print :Name' "$RUNNER_TEMP/profile.plist")"
+
+      - name: Import installer certificate
+        shell: bash
+        env:
+          APPSTORE_INSTALLER_CERTIFICATE: ${{ secrets.APPSTORE_INSTALLER_CERTIFICATE }}
+          APPSTORE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPSTORE_INSTALLER_CERTIFICATE_PASSWORD }}
+        run: |
+          keychain="$RUNNER_TEMP/appstore-installer.keychain-db"
+          password="$(openssl rand -base64 24)"
+          echo "$APPSTORE_INSTALLER_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/installer.p12"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          security import "$RUNNER_TEMP/installer.p12" -k "$keychain" \
+            -P "$APPSTORE_INSTALLER_CERTIFICATE_PASSWORD" -T /usr/bin/productbuild -T /usr/bin/productsign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain" > /dev/null
+          # Keep the existing keychains searchable; the Tauri bundler adds its own.
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/installer.p12"
+          echo "INSTALLER_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
+
+      # Signing uses the Tauri bundler's APPLE_CERTIFICATE mechanism with the
+      # Apple Distribution certificate. No notarization variables (APPLE_ID,
+      # APPLE_API_*) are set here: App Store builds are not notarized.
+      - name: Build universal app bundle
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPSTORE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPSTORE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPSTORE_SIGNING_IDENTITY }}
+          BUILD_NUMBER: ${{ inputs.build_number || github.run_number }}
+        run: |
+          pnpm tauri build --bundles app --target universal-apple-darwin \
+            --config src-tauri/tauri.appstore.conf.json \
+            --config "{\"bundle\":{\"macOS\":{\"bundleVersion\":\"$BUILD_NUMBER\"}}}"
+
+      - name: Verify bundle
+        shell: bash
+        run: |
+          app="src-tauri/target/universal-apple-darwin/release/bundle/macos/Clipsa.app"
+          codesign --verify --strict --verbose=2 "$app"
+          codesign -d --entitlements - --xml "$app" > "$RUNNER_TEMP/entitlements.plist"
+          plutil -p "$RUNNER_TEMP/entitlements.plist"
+          grep -q 'com.apple.security.app-sandbox' "$RUNNER_TEMP/entitlements.plist"
+          test -f "$app/Contents/embedded.provisionprofile"
+          lipo -info "$app/Contents/MacOS/clipsa"
+          plutil -p "$app/Contents/Info.plist" | grep -E 'CFBundleVersion|CFBundleShortVersionString|LSApplicationCategoryType|LSMinimumSystemVersion|ITSAppUsesNonExemptEncryption'
+
+      - name: Build signed installer package
+        shell: bash
+        env:
+          APPLE_INSTALLER_IDENTITY: ${{ secrets.APPSTORE_INSTALLER_IDENTITY }}
+        run: |
+          app="src-tauri/target/universal-apple-darwin/release/bundle/macos/Clipsa.app"
+          xcrun productbuild --sign "$APPLE_INSTALLER_IDENTITY" --keychain "$INSTALLER_KEYCHAIN" \
+            --component "$app" /Applications Clipsa.pkg
+          pkgutil --check-signature Clipsa.pkg
+
+      - name: Attach package to the run
+        uses: actions/upload-artifact@v4
+        with:
+          name: Clipsa-appstore-pkg
+          path: Clipsa.pkg
+          retention-days: 14
+
+      - name: Upload to App Store Connect
+        if: inputs.upload
+        shell: bash
+        env:
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+          APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          printf '%s\n' "$APPSTORE_API_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${APPSTORE_API_KEY_ID}.p8
+          xcrun altool --upload-app --type macos --file Clipsa.pkg \
+            --apiKey "$APPSTORE_API_KEY_ID" --apiIssuer "$APPSTORE_API_ISSUER_ID"
+
+      - name: Clean up keys
+        if: always()
+        shell: bash
+        run: |
+          rm -f ~/.appstoreconnect/private_keys/AuthKey_*.p8 src-tauri/appstore/embedded.provisionprofile
+          if [ -n "${INSTALLER_KEYCHAIN:-}" ]; then
+            security delete-keychain "$INSTALLER_KEYCHAIN" || true
+          fi

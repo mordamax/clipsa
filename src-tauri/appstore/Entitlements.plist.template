@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Mac App Store entitlements. `$(TEAM_ID)` is replaced with the Apple team ID
+  by .github/workflows/appstore.yml, which writes the result to
+  Entitlements.plist (gitignored) next to this file. See docs/deployment.md.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<!-- Required by WKWebView: without it the sandboxed WebContent processes
+	     crash on launch and the windows stay blank. Clipsa makes no network
+	     requests itself. -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<key>com.apple.application-identifier</key>
+	<string>$(TEAM_ID).com.clipsa.app</string>
+	<key>com.apple.developer.team-identifier</key>
+	<string>$(TEAM_ID)</string>
+</dict>
+</plist>

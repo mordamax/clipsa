@@ -1,0 +1,33 @@
+# Rendered by .github/workflows/release.yml for every release and pushed to
+# the mordamax/homebrew-tap repository (`brew install --cask mordamax/tap/clipsa`).
+cask "clipsa" do
+  arch arm: "aarch64", intel: "x64"
+
+  version "@VERSION@"
+  sha256 arm:   "@SHA256_ARM@",
+         intel: "@SHA256_INTEL@"
+
+  url "https://github.com/mordamax/clipsa.dev/releases/download/v#{version}/Clipsa_#{version}_#{arch}.dmg",
+      verified: "github.com/mordamax/clipsa.dev/"
+  name "Clipsa"
+  desc "Private, encrypted clipboard history manager"
+  homepage "https://clipsa.dev"
+
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  depends_on macos: ">= :catalina"
+
+  app "Clipsa.app"
+
+  uninstall quit: "com.clipsa.app"
+
+  zap trash: [
+    "~/Library/Application Support/clipsa",
+    "~/Library/Application Support/com.clipsa.app",
+    "~/Library/Caches/com.clipsa.app",
+    "~/Library/WebKit/com.clipsa.app",
+  ]
+end

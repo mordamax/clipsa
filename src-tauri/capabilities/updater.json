@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "updater",
+  "description": "\"Software Update\" window (direct-download builds only; see build.rs)",
+  "windows": ["updater"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-set-focus",
+    "updater:default",
+    "process:allow-restart"
+  ]
+}

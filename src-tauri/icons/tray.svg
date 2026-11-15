@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44">
+  <!-- Concept 2 tray template: open 'C' card over a dimmed (sealed) card. Black + alpha only. -->
+  <rect x="19" y="7" width="18" height="18" rx="5" fill="#000" fill-opacity="0.42"/>
+  <path d="M27.5 26.5 V22 a5.5 5.5 0 0 0 -5.5 -5.5 H13 a5.5 5.5 0 0 0 -5.5 5.5 V31 a5.5 5.5 0 0 0 5.5 5.5 H22 a5.5 5.5 0 0 0 5.5 -5.5 Z"
+        fill="none" stroke="#000" stroke-width="2.9" stroke-linecap="round"
+        stroke-dasharray="51.56 19" stroke-dashoffset="-9.5"/>
+</svg>

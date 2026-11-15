@@ -1,0 +1,229 @@
+name: Release
+
+# Builds signed installers + updater artifacts for every platform, attaches them
+# to a draft GitHub release, and publishes the release once all builds succeed.
+# The updater endpoint (releases/latest/download/latest.json) only sees the
+# release after the final `publish` job flips it out of draft.
+#
+# Release notes come from CHANGELOG.md: the section headed `## [<version>]` for
+# the version in tauri.conf.json becomes the GitHub release body and, through
+# tauri-action, the `notes` field of latest.json that the in-app update window
+# shows. The release fails before building if that section is missing or empty.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  notes:
+    name: Release notes
+    runs-on: ubuntu-latest
+    outputs:
+      body: ${{ steps.changelog.outputs.body }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract this version's CHANGELOG section
+        id: changelog
+        run: |
+          version="$(jq -r .version src-tauri/tauri.conf.json)"
+          # Everything between "## [<version>]" and the next "## [" heading,
+          # without leading blank lines ($(...) drops trailing ones).
+          body="$(awk -v heading="## [$version]" '
+            index($0, heading) == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md | sed -e '/[^[:space:]]/,$!d')"
+          if [ -z "${body//[[:space:]]/}" ]; then
+            echo "::error file=CHANGELOG.md::No release notes for $version. Add a non-empty '## [$version] - YYYY-MM-DD' section to CHANGELOG.md."
+            exit 1
+          fi
+          printf '%s\n' "$body"
+          delimiter="EOF_$(openssl rand -hex 16)"
+          {
+            echo "body<<$delimiter"
+            printf '%s\n' "$body"
+            echo "$delimiter"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build (${{ matrix.name }})
+    needs: notes
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS Apple Silicon
+            platform: macos-latest
+            args: --target aarch64-apple-darwin
+            rust_targets: aarch64-apple-darwin
+          - name: macOS Intel
+            platform: macos-latest
+            args: --target x86_64-apple-darwin
+            rust_targets: x86_64-apple-darwin
+          - name: Linux x64
+            platform: ubuntu-22.04
+            args: ''
+            rust_targets: ''
+          - name: Windows x64
+            platform: windows-latest
+            args: ''
+            rust_targets: ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux system dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libxdo-dev \
+            libssl-dev \
+            libdbus-1-dev
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: ${{ matrix.rust_targets }}
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Unsigned or un-notarized Mac builds show Gatekeeper warnings and make
+      # every update look like a new app to macOS (keychain prompts, lost
+      # Accessibility permission), so releases require both. The variables are
+      # exported only after the check because the Tauri bundler treats an Apple
+      # env var set to an empty string as configured.
+      - name: Configure macOS signing and notarization
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          missing=()
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            [ -n "${!name}" ] || missing+=("$name")
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::macOS releases must be signed and notarized. Missing secrets: ${missing[*]}"
+            exit 1
+          fi
+          {
+            echo "APPLE_CERTIFICATE=$APPLE_CERTIFICATE"
+            echo "APPLE_CERTIFICATE_PASSWORD=$APPLE_CERTIFICATE_PASSWORD"
+            echo "APPLE_ID=$APPLE_ID"
+            echo "APPLE_PASSWORD=$APPLE_PASSWORD"
+            echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"
+          } >> "$GITHUB_ENV"
+          if [ -n "$APPLE_SIGNING_IDENTITY" ]; then
+            echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build and upload
+        id: tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: v__VERSION__
+          releaseName: Clipsa v__VERSION__
+          # tauri-action also writes this into latest.json as `notes`.
+          releaseBody: ${{ needs.notes.outputs.body }}
+          releaseDraft: true
+          prerelease: false
+          includeUpdaterJson: true
+          args: --config src-tauri/tauri.release.conf.json ${{ matrix.args }}
+
+  publish:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read app version
+        id: version
+        run: echo "version=$(jq -r .version src-tauri/tauri.conf.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "v${{ steps.version.outputs.version }}" --draft=false --latest
+
+  homebrew:
+    name: Update Homebrew cask
+    needs: publish
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Render cask from the published DMGs
+        run: |
+          version="$(jq -r .version src-tauri/tauri.conf.json)"
+          gh release download "v$version" -D dmg \
+            -p "Clipsa_${version}_aarch64.dmg" -p "Clipsa_${version}_x64.dmg"
+          arm="$(sha256sum "dmg/Clipsa_${version}_aarch64.dmg" | cut -d' ' -f1)"
+          intel="$(sha256sum "dmg/Clipsa_${version}_x64.dmg" | cut -d' ' -f1)"
+          sed -e "s/@VERSION@/$version/" -e "s/@SHA256_ARM@/$arm/" -e "s/@SHA256_INTEL@/$intel/" \
+            packaging/homebrew/clipsa.rb.in > clipsa.rb
+          gh release upload "v$version" clipsa.rb --clobber
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      # Needs a fine-grained token with contents:write on mordamax/homebrew-tap.
+      - name: Push cask to mordamax/homebrew-tap
+        if: env.HOMEBREW_TAP_TOKEN != ''
+        run: |
+          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/mordamax/homebrew-tap.git" tap
+          mkdir -p tap/Casks
+          cp clipsa.rb tap/Casks/clipsa.rb
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/clipsa.rb
+          git diff --cached --quiet && exit 0
+          git commit -m "clipsa ${VERSION}"
+          git push

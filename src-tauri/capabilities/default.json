@@ -1,0 +1,20 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main and quick picker windows",
+  "windows": ["main", "picker"],
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "process:allow-restart",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        { "url": "https://clipsa.dev" },
+        { "url": "https://clipsa.dev/*" },
+        { "url": "https://github.com/mordamax/clipsa.dev" },
+        { "url": "https://github.com/mordamax/clipsa.dev/*" }
+      ]
+    }
+  ]
+}

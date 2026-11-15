@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Concept 2 · Copy Monogram: a 'C' card outline over a dimmed (sealed) second card -->
+  <defs>
+    <linearGradient id="bg" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#6A5CF6"/>
+      <stop offset="0.6" stop-color="#4B33D1"/>
+      <stop offset="1" stop-color="#7B2FC9"/>
+    </linearGradient>
+    <radialGradient id="sheen" cx="0.28" cy="0.06" r="0.8">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.45"/>
+      <stop offset="0.35" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E2E0FF"/>
+    </linearGradient>
+    <linearGradient id="sealed" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.22"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#1A0F4A" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#sheen)"/>
+  <rect x="103" y="103" width="818" height="818" rx="182" fill="none" stroke="url(#rim)" stroke-width="6"/>
+  <!-- sealed card (behind, dimmed) -->
+  <rect x="460" y="236" width="300" height="300" rx="84" fill="url(#sealed)"/>
+  <rect x="462" y="238" width="296" height="296" rx="82" fill="none" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="4"/>
+  <!-- front card drawn as a C (rounded square with the right side opened via dash gap) -->
+  <g filter="url(#shadow)">
+    <path d="M610 580 V508 a88 88 0 0 0 -88 -88 H378 a88 88 0 0 0 -88 88 V652 a88 88 0 0 0 88 88 H522 a88 88 0 0 0 88 -88 Z"
+          fill="none" stroke="url(#ink)" stroke-width="88" stroke-linecap="round"
+          stroke-dasharray="828.92 300" stroke-dashoffset="-150"/>
+  </g>
+</svg>

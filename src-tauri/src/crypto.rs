@@ -1,0 +1,337 @@
+// Cryptography for Clipsa.
+//
+// Every clipboard item is encrypted with AES-256-GCM under a 256-bit master key
+// (`nonce(12) || ciphertext || tag(16)`). Deduplication uses an HMAC-SHA256
+// keyed with a subkey derived from the master key, so stored hashes reveal
+// nothing about content to anyone without the key.
+//
+// The master key lives in a `KeyStore` (OS keychain in release builds). A key
+// is only ever generated when the store reports that no key exists; any other
+// failure aborts startup so existing history is never orphaned.
+
+use std::path::PathBuf;
+
+use aes_gcm::{
+    aead::{Aead, AeadCore, KeyInit, OsRng},
+    Aes256Gcm, Nonce,
+};
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use hkdf::Hkdf;
+use hmac::{Hmac, Mac};
+use sha2::Sha256;
+use tracing::info;
+use zeroize::{Zeroize, Zeroizing};
+
+use crate::error::{ClipsaError, ClipsaResult};
+
+pub const KEY_LEN: usize = 32;
+const NONCE_LEN: usize = 12;
+const TAG_LEN: usize = 16;
+
+const KEYCHAIN_SERVICE: &str = "clipsa";
+const KEYCHAIN_ACCOUNT: &str = "encryption_key";
+
+/// Persistent storage for the serialized master key.
+pub trait KeyStore: Send + Sync {
+    /// `Ok(None)` means no key has been stored yet. Any other failure
+    /// (access denied, locked keychain, I/O error) must be an `Err`.
+    fn load(&self) -> ClipsaResult<Option<String>>;
+    fn store(&self, secret: &str) -> ClipsaResult<()>;
+}
+
+/// Master key in the OS keychain (macOS Keychain, Windows Credential Manager,
+/// Linux Secret Service).
+pub struct KeychainStore {
+    entry: keyring::Entry,
+}
+
+impl KeychainStore {
+    pub fn new() -> ClipsaResult<Self> {
+        let entry = keyring::Entry::new(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT)
+            .map_err(|e| ClipsaError::KeyManagement(format!("Keychain unavailable: {e}")))?;
+        Ok(Self { entry })
+    }
+}
+
+impl KeyStore for KeychainStore {
+    fn load(&self) -> ClipsaResult<Option<String>> {
+        match self.entry.get_password() {
+            Ok(secret) => Ok(Some(secret)),
+            Err(keyring::Error::NoEntry) => Ok(None),
+            Err(e) => Err(ClipsaError::KeyManagement(format!(
+                "Could not read the encryption key from the system keychain: {e}"
+            ))),
+        }
+    }
+
+    fn store(&self, secret: &str) -> ClipsaResult<()> {
+        self.entry.set_password(secret).map_err(|e| {
+            ClipsaError::KeyManagement(format!(
+                "Could not save the encryption key to the system keychain: {e}"
+            ))
+        })
+    }
+}
+
+/// Master key in a local file (owner-only permissions). Used by debug builds so
+/// that every rebuild does not trigger a keychain access prompt.
+pub struct FileKeyStore {
+    path: PathBuf,
+}
+
+impl FileKeyStore {
+    pub fn new(path: PathBuf) -> Self {
+        Self { path }
+    }
+}
+
+impl KeyStore for FileKeyStore {
+    fn load(&self) -> ClipsaResult<Option<String>> {
+        match std::fs::read_to_string(&self.path) {
+            Ok(secret) => Ok(Some(secret)),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(ClipsaError::KeyManagement(format!(
+                "Could not read key file {}: {e}",
+                self.path.display()
+            ))),
+        }
+    }
+
+    fn store(&self, secret: &str) -> ClipsaResult<()> {
+        let io_err = |e: std::io::Error| {
+            ClipsaError::KeyManagement(format!(
+                "Could not write key file {}: {e}",
+                self.path.display()
+            ))
+        };
+        if let Some(parent) = self.path.parent() {
+            std::fs::create_dir_all(parent).map_err(io_err)?;
+        }
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        }
+        let mut file = options.open(&self.path).map_err(io_err)?;
+        std::io::Write::write_all(&mut file, secret.as_bytes()).map_err(io_err)
+    }
+}
+
+pub struct CryptoManager {
+    cipher: Aes256Gcm,
+    hash_key: Zeroizing<[u8; KEY_LEN]>,
+}
+
+impl CryptoManager {
+    /// Build a manager from raw key bytes.
+    pub fn from_key(key: &[u8; KEY_LEN]) -> Self {
+        let cipher = Aes256Gcm::new(key.into());
+        let mut hash_key = Zeroizing::new([0u8; KEY_LEN]);
+        Hkdf::<Sha256>::new(None, key)
+            .expand(b"clipsa content-hash v1", hash_key.as_mut())
+            .expect("32 bytes is a valid HKDF-SHA256 output length");
+        Self { cipher, hash_key }
+    }
+
+    /// Load the master key from `store`, generating and persisting a new one
+    /// only when the store holds no key.
+    pub fn load_or_create(store: &dyn KeyStore) -> ClipsaResult<Self> {
+        let key = match store.load()? {
+            Some(secret) => Self::deserialize_key(&secret)?,
+            None => {
+                let mut key = Zeroizing::new([0u8; KEY_LEN]);
+                aes_gcm::aead::rand_core::RngCore::fill_bytes(&mut OsRng, key.as_mut());
+                let mut secret = Self::serialize_key(&key);
+                let stored = store.store(&secret);
+                secret.zeroize();
+                stored?;
+                info!("Generated and stored a new encryption key");
+                key
+            }
+        };
+        Ok(Self::from_key(&key))
+    }
+
+    fn serialize_key(key: &[u8; KEY_LEN]) -> String {
+        serde_json::json!({
+            "id": uuid::Uuid::new_v4().to_string(),
+            "key": BASE64.encode(key),
+            "created_at": chrono::Utc::now().to_rfc3339(),
+        })
+        .to_string()
+    }
+
+    fn deserialize_key(secret: &str) -> ClipsaResult<Zeroizing<[u8; KEY_LEN]>> {
+        let value: serde_json::Value = serde_json::from_str(secret)
+            .map_err(|e| ClipsaError::KeyManagement(format!("Invalid key format: {e}")))?;
+        let encoded = value["key"]
+            .as_str()
+            .ok_or_else(|| ClipsaError::KeyManagement("Missing key data".into()))?;
+        let bytes = Zeroizing::new(
+            BASE64
+                .decode(encoded)
+                .map_err(|e| ClipsaError::KeyManagement(format!("Invalid key encoding: {e}")))?,
+        );
+        if bytes.len() != KEY_LEN {
+            return Err(ClipsaError::KeyManagement("Invalid key length".into()));
+        }
+        let mut key = Zeroizing::new([0u8; KEY_LEN]);
+        key.copy_from_slice(&bytes);
+        Ok(key)
+    }
+
+    /// Encrypt `data`; output layout is `nonce(12) || ciphertext || tag(16)`.
+    pub fn encrypt(&self, data: &[u8]) -> ClipsaResult<Vec<u8>> {
+        let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
+        let sealed = self
+            .cipher
+            .encrypt(&nonce, data)
+            .map_err(|e| ClipsaError::Encryption(e.to_string()))?;
+        let mut out = Vec::with_capacity(NONCE_LEN + sealed.len());
+        out.extend_from_slice(&nonce);
+        out.extend_from_slice(&sealed);
+        Ok(out)
+    }
+
+    pub fn decrypt(&self, data: &[u8]) -> ClipsaResult<Vec<u8>> {
+        if data.len() < NONCE_LEN + TAG_LEN {
+            return Err(ClipsaError::Decryption("Data too short".into()));
+        }
+        let (nonce, sealed) = data.split_at(NONCE_LEN);
+        self.cipher
+            .decrypt(Nonce::from_slice(nonce), sealed)
+            .map_err(|e| ClipsaError::Decryption(e.to_string()))
+    }
+
+    /// Encrypt and base64-encode (storage representation).
+    pub fn seal(&self, data: &[u8]) -> ClipsaResult<String> {
+        Ok(BASE64.encode(self.encrypt(data)?))
+    }
+
+    /// Inverse of [`CryptoManager::seal`].
+    pub fn open(&self, sealed: &str) -> ClipsaResult<Vec<u8>> {
+        let bytes = BASE64
+            .decode(sealed)
+            .map_err(|e| ClipsaError::Decryption(format!("Invalid base64: {e}")))?;
+        self.decrypt(&bytes)
+    }
+
+    /// Keyed content fingerprint used for deduplication.
+    pub fn content_hash(&self, kind: &str, data: &[u8]) -> String {
+        let mut mac = <Hmac<Sha256> as Mac>::new_from_slice(self.hash_key.as_ref())
+            .expect("HMAC accepts any key length");
+        mac.update(kind.as_bytes());
+        mac.update(&[0]);
+        mac.update(data);
+        mac.finalize()
+            .into_bytes()
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Mutex;
+
+    fn manager() -> CryptoManager {
+        CryptoManager::from_key(&[7u8; KEY_LEN])
+    }
+
+    #[test]
+    fn roundtrips_every_length_including_empty_and_short() {
+        let crypto = manager();
+        for len in 0..40 {
+            let plaintext = vec![b'x'; len];
+            let sealed = crypto.encrypt(&plaintext).unwrap();
+            assert_eq!(sealed.len(), NONCE_LEN + len + TAG_LEN);
+            assert_eq!(crypto.decrypt(&sealed).unwrap(), plaintext, "len {len}");
+        }
+    }
+
+    #[test]
+    fn encryption_is_nondeterministic_and_authenticated() {
+        let crypto = manager();
+        let a = crypto.encrypt(b"same").unwrap();
+        let b = crypto.encrypt(b"same").unwrap();
+        assert_ne!(a, b);
+
+        let mut tampered = a.clone();
+        *tampered.last_mut().unwrap() ^= 1;
+        assert!(crypto.decrypt(&tampered).is_err());
+        assert!(CryptoManager::from_key(&[8u8; KEY_LEN])
+            .decrypt(&a)
+            .is_err());
+    }
+
+    #[test]
+    fn content_hash_is_keyed_and_kind_separated() {
+        let a = manager();
+        let b = CryptoManager::from_key(&[8u8; KEY_LEN]);
+        assert_eq!(
+            a.content_hash("text", b"pin"),
+            a.content_hash("text", b"pin")
+        );
+        assert_ne!(
+            a.content_hash("text", b"pin"),
+            b.content_hash("text", b"pin")
+        );
+        assert_ne!(
+            a.content_hash("text", b"pin"),
+            a.content_hash("html", b"pin")
+        );
+    }
+
+    struct MemoryStore {
+        load: fn() -> ClipsaResult<Option<String>>,
+        stored: Mutex<Option<String>>,
+    }
+
+    impl KeyStore for MemoryStore {
+        fn load(&self) -> ClipsaResult<Option<String>> {
+            (self.load)()
+        }
+        fn store(&self, secret: &str) -> ClipsaResult<()> {
+            *self.stored.lock().unwrap() = Some(secret.to_string());
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn keystore_failure_never_generates_a_replacement_key() {
+        let store = MemoryStore {
+            load: || Err(ClipsaError::KeyManagement("access denied".into())),
+            stored: Mutex::new(None),
+        };
+        assert!(CryptoManager::load_or_create(&store).is_err());
+        assert!(store.stored.lock().unwrap().is_none());
+    }
+
+    #[test]
+    fn generated_key_is_persisted_and_reloads_identically() {
+        let store = MemoryStore {
+            load: || Ok(None),
+            stored: Mutex::new(None),
+        };
+        let first = CryptoManager::load_or_create(&store).unwrap();
+        let secret = store.stored.lock().unwrap().clone().unwrap();
+        let sealed = first.encrypt(b"hello").unwrap();
+
+        let reloaded = CryptoManager::from_key(&CryptoManager::deserialize_key(&secret).unwrap());
+        assert_eq!(reloaded.decrypt(&sealed).unwrap(), b"hello");
+    }
+
+    #[test]
+    fn file_store_reports_missing_key_as_none_and_never_overwrites() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = FileKeyStore::new(dir.path().join("k"));
+        assert!(store.load().unwrap().is_none());
+        store.store("one").unwrap();
+        assert!(store.store("two").is_err());
+        assert_eq!(store.load().unwrap().as_deref(), Some("one"));
+    }
+}

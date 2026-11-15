@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Privacy policy · Clipsa</title>
+  <meta name="description" content="Clipsa collects nothing. Your clipboard history stays on your device, encrypted. This policy covers the Clipsa app and this website.">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#08090d">
+  <link rel="canonical" href="https://clipsa.dev/privacy">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav" aria-label="Main">
+      <a class="brand" href="./">
+        <img src="assets/icon.svg" alt="" width="28" height="28">
+        Clipsa
+      </a>
+      <ul class="nav-links">
+        <li><a href="./#features">Features</a></li>
+        <li><a href="./#privacy">Privacy</a></li>
+        <li><a href="compare">Compare</a></li>
+        <li><a href="./#faq">FAQ</a></li>
+        <li><a href="https://github.com/mordamax/clipsa.dev">GitHub</a></li>
+      </ul>
+      <a class="btn btn-primary btn-sm" href="./#download">Download</a>
+      <details class="nav-menu">
+        <summary aria-label="Menu">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </summary>
+        <ul>
+          <li><a href="./#features">Features</a></li>
+          <li><a href="./#privacy">Privacy</a></li>
+          <li><a href="compare">Compare</a></li>
+          <li><a href="./#faq">FAQ</a></li>
+          <li><a href="https://github.com/mordamax/clipsa.dev">GitHub</a></li>
+        </ul>
+      </details>
+    </nav>
+  </header>
+
+  <main id="main" class="container doc">
+    <aside class="toc" aria-labelledby="toc-title">
+      <h2 id="toc-title">On this page</h2>
+      <ol>
+        <li><a href="#collect">What we collect</a></li>
+        <li><a href="#app-data">Data the app stores on your device</a></li>
+        <li><a href="#no-tracking">No accounts, analytics or telemetry</a></li>
+        <li><a href="#network">Network access: the optional update check</a></li>
+        <li><a href="#website">This website</a></li>
+        <li><a href="#downloads">Downloads and third-party services</a></li>
+        <li><a href="#children">Children</a></li>
+        <li><a href="#changes">Changes to this policy</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ol>
+    </aside>
+
+    <article class="prose">
+      <h1>Privacy policy</h1>
+      <p class="meta">Effective date: 8 November 2026</p>
+
+      <div class="summary">
+        <p><strong>In short:</strong> Clipsa collects nothing. Your clipboard history stays on your device and is encrypted. There are no accounts, analytics, telemetry or crash reports. The app only goes online if you turn on update checks, and then it only talks to GitHub Releases. This website uses no cookies and no trackers.</p>
+      </div>
+
+      <p>This policy covers the Clipsa desktop app for macOS, Windows and Linux and this website. Clipsa is free, open-source software under the MIT license, and you can check every statement below against the <a href="https://github.com/mordamax/clipsa.dev">source code</a>.</p>
+
+      <h2 id="collect">What we collect</h2>
+      <p>Nothing. The Clipsa project does not run any server that receives data from the app or from this website. We have no way to see what you copy, how you use Clipsa, or who you are.</p>
+
+      <h2 id="app-data">Data the app stores on your device</h2>
+      <ul>
+        <li><strong>Clipboard history.</strong> Clipsa records what you copy (text, rich text, images and file lists) so you can paste it again. It is stored only on your computer, in <code>clipsa/clipboard.db</code> inside your data directory:
+          <ul>
+            <li>macOS: <code>~/Library/Application Support</code></li>
+            <li>Windows: <code>%APPDATA%</code></li>
+            <li>Linux: <code>$XDG_DATA_HOME</code>, or <code>~/.local/share</code> if it is not set</li>
+          </ul>
+        </li>
+        <li><strong>Encryption.</strong> The content of every item is encrypted individually with AES-256-GCM before it is written to disk. Metadata such as content type, size and the times an item was created and last used is not encrypted.</li>
+        <li><strong>Encryption key.</strong> A random key is created on first run and kept in your operating system's keychain: the macOS Keychain, Windows Credential Manager, or the Secret Service on Linux (for example GNOME Keyring or KWallet). It never leaves your device.</li>
+        <li><strong>Settings.</strong> Your preferences are stored locally and are not encrypted.</li>
+        <li><strong>Things Clipsa avoids storing.</strong> On macOS and Windows, copies that password managers mark as concealed or transient are skipped, and you can exclude specific apps. On Linux these signals are not available; you can pause monitoring from the tray.</li>
+      </ul>
+      <p>You control this data. You can delete single items, clear your history (pinned items are kept until you unpin or delete them), set a maximum number of items, and have items deleted automatically after a number of days.</p>
+
+      <h2 id="no-tracking">No accounts, analytics or telemetry</h2>
+      <p>Clipsa has no user accounts and no sign-in. It contains no analytics, telemetry, advertising or crash reporting, and it does not sync your history anywhere.</p>
+
+      <h2 id="network">Network access: the optional update check</h2>
+      <p>The only network request Clipsa can make is the update check. It is off until you opt in on the first-run screen, and you can change it at any time in Settings.</p>
+      <p>When it is on, Clipsa downloads a small version file (<code>latest.json</code>) from GitHub Releases at startup and once a day while it runs, and, if you install an available update (or turn on automatic installation), the update package. Updates are verified against a signing key built into the app before they are installed. Clipsa sends no clipboard data or settings with these requests. Like any web server, GitHub receives your IP address and the request's user agent; their handling is described in the <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub General Privacy Statement</a>.</p>
+
+      <h2 id="website">This website</h2>
+      <p>This website is a set of static pages hosted on Vercel. It sets no cookies, runs no scripts, and loads no fonts, images or other resources from third parties. There are no analytics or trackers (Vercel Web Analytics is not enabled).</p>
+      <p>Vercel, as the host, processes visitors' IP addresses and request details to serve the pages and protect against abuse. This is covered by the <a href="https://vercel.com/legal/privacy-policy">Vercel Privacy Policy</a>. The Clipsa project does not use these logs.</p>
+
+      <h2 id="downloads">Downloads and third-party services</h2>
+      <p>Clipsa installers are published on GitHub Releases, and Clipsa can also be installed with Homebrew. Downloads from these services are governed by their own policies: the <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub General Privacy Statement</a> and Homebrew's <a href="https://docs.brew.sh/Analytics">analytics documentation</a>. If you buy Clipsa from the Mac App Store, Apple handles the purchase and updates under its own terms and <a href="https://www.apple.com/legal/privacy/">privacy policy</a>; the app itself behaves the same and collects nothing. If you sponsor the project through GitHub Sponsors, GitHub processes that payment under its own terms.</p>
+
+      <h2 id="children">Children</h2>
+      <p>Because Clipsa collects no personal data from anyone, it collects none from children either.</p>
+
+      <h2 id="changes">Changes to this policy</h2>
+      <p>If this policy changes, the updated version will be published on this page with a new effective date, and the change will be noted in the release notes of the next Clipsa version on <a href="https://github.com/mordamax/clipsa.dev/releases">GitHub Releases</a>.</p>
+
+      <h2 id="contact">Contact</h2>
+      <p>Questions about privacy can be asked in <a href="https://github.com/mordamax/clipsa.dev/issues">GitHub issues</a>. To report a security vulnerability, please use a <a href="https://github.com/mordamax/clipsa.dev/security/advisories/new">private GitHub security advisory</a> instead of a public issue.</p>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="./"><img src="assets/icon.svg" alt="" width="28" height="28"> Clipsa</a>
+        <p>The private clipboard manager for macOS, Windows and Linux.</p>
+        <p class="footer-copy">© 2025–2026 Clipsa contributors</p>
+      </div>
+      <nav aria-labelledby="footer-product">
+        <h2 id="footer-product">Product</h2>
+        <ul>
+          <li><a href="./#features">Features</a></li>
+          <li><a href="./#privacy">Privacy &amp; security</a></li>
+          <li><a href="compare">Compare</a></li>
+          <li><a href="./#download">Download</a></li>
+          <li><a href="./#faq">FAQ</a></li>
+        </ul>
+      </nav>
+      <nav aria-labelledby="footer-project">
+        <h2 id="footer-project">Project</h2>
+        <ul>
+          <li><a href="https://github.com/mordamax/clipsa.dev">GitHub</a></li>
+          <li><a href="https://github.com/mordamax/clipsa.dev/blob/master/docs/development-roadmap.md">Roadmap</a></li>
+          <li><a href="https://github.com/mordamax/clipsa.dev/blob/master/CHANGELOG.md">Changelog</a></li>
+          <li><a href="https://github.com/sponsors/mordamax">Sponsor</a></li>
+        </ul>
+      </nav>
+      <nav aria-labelledby="footer-legal">
+        <h2 id="footer-legal">Legal</h2>
+        <ul>
+          <li><a href="privacy" aria-current="page">Privacy policy</a></li>
+          <li><a href="https://github.com/mordamax/clipsa.dev/blob/master/LICENSE">MIT license</a></li>
+        </ul>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

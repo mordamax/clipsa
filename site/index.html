@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Clipsa: the private clipboard manager for macOS, Windows and Linux</title>
+  <meta name="description" content="Clipsa is a free, open-source clipboard manager that keeps your history on your device, encrypts every item and skips password-manager copies. No telemetry, no network access unless you opt in to update checks.">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#08090d">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://clipsa.dev/">
+  <link rel="canonical" href="https://clipsa.dev/">
+  <meta property="og:title" content="Clipsa: the private clipboard manager">
+  <meta property="og:description" content="Free and open source. Everything stays on your device, every item is encrypted, no telemetry.">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav" aria-label="Main">
+      <a class="brand" href="./">
+        <img src="assets/icon.svg" alt="" width="28" height="28">
+        Clipsa
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#privacy">Privacy</a></li>
+        <li><a href="compare">Compare</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="https://github.com/mordamax/clipsa.dev">GitHub</a></li>
+      </ul>
+      <a class="btn btn-primary btn-sm" href="#download">Download</a>
+      <details class="nav-menu">
+        <summary aria-label="Menu">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </summary>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#privacy">Privacy</a></li>
+          <li><a href="compare">Compare</a></li>
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="https://github.com/mordamax/clipsa.dev">GitHub</a></li>
+        </ul>
+      </details>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="container hero-copy">
+        <p class="eyebrow">The private clipboard manager</p>
+        <h1 id="hero-title">Clipboard history that stays private</h1>
+        <p class="hero-lead">Clipsa remembers what you copy so you can find it and paste it again from the keyboard. Your history stays on your device, every item is encrypted, and nothing is sent anywhere.</p>
+        <div class="button-row">
+          <a class="btn btn-primary btn-lg" href="https://github.com/mordamax/clipsa.dev/releases/latest">
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+            Download Clipsa
+          </a>
+          <a class="btn btn-ghost btn-lg" href="https://github.com/mordamax/clipsa.dev">
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
+            View source
+          </a>
+        </div>
+        <p class="hero-meta">macOS · Windows · Linux · Free and open source</p>
+        <p class="hero-brew"><span>Homebrew</span> <code>brew install --cask mordamax/tap/clipsa</code></p>
+      </div>
+
+      <div class="container">
+        <figure class="stage">
+          <div class="stage-desktop" aria-hidden="true">
+            <div class="stage-menubar">
+              <span class="stage-menubar-app">Mail</span>
+              <span>File</span><span>Edit</span><span>View</span>
+              <span class="stage-menubar-tray"><img src="assets/icon.svg" alt="" width="14" height="14"> 9:41</span>
+            </div>
+            <div class="mock-window">
+              <div class="mock-titlebar"><span class="dots"><i></i><i></i><i></i></span><span>New message</span></div>
+              <div class="mock-mail">
+                <p class="mock-field"><span>To:</span> team@northwind.example</p>
+                <p class="mock-field"><span>Subject:</span> Launch checklist, final version</p>
+                <div class="mock-body">
+                  <p>Hi all,</p>
+                  <p>Thanks for the notes on the launch checklist. The final version is attached, and the stand-up link for tomorrow is in the invite.</p>
+                  <p class="mock-caret"><span></span></p>
+                  <p class="mock-attachment"><span>PDF</span> launch-checklist-v3.pdf</p>
+                </div>
+              </div>
+            </div>
+            <div class="stage-keys"><kbd>⌘</kbd><kbd>⇧</kbd><kbd>V</kbd></div>
+          </div>
+          <img class="stage-picker" src="assets/app-picker.webp" width="760" height="480" alt="The Clipsa quick picker open over a mail draft. A search field with type filters (All, Text, Rich, Images, Files, Pinned) sits at the top; three pinned items come first (Stand-up link, Email sign-off and Bug report template), followed by today's copies: a git command, rich text, an image and a link, each with a ⌘1 to ⌘9 shortcut. The selected image is previewed on the right with its dimensions, size and dates. Keyboard hints run along the bottom.">
+          <figcaption class="sr-only">Press Cmd or Ctrl + Shift + V in any app, pick an item and press Enter to paste it.</figcaption>
+        </figure>
+      </div>
+
+      <div class="container">
+        <ul class="trust" aria-label="At a glance">
+          <li>
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
+            <span><strong>MIT licensed</strong> Open source on GitHub</span>
+          </li>
+          <li>
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            <span><strong>Encrypted by default</strong> AES-256-GCM, key in your keychain</span>
+          </li>
+          <li>
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/><path d="M3 3l18 18"/></svg>
+            <span><strong>No account</strong> No telemetry, no analytics</span>
+          </li>
+          <li>
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+            <span><strong>Every desktop</strong> macOS, Windows, Linux</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="how" aria-labelledby="how-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">How it works</p>
+          <h2 id="how-title">Copy. Summon. Paste.</h2>
+          <p>No new habits. Copy as you always do; Clipsa keeps it, and a shortcut brings it back in any app.</p>
+        </div>
+        <ol class="steps">
+          <li class="step">
+            <span class="step-num">1</span>
+            <div class="keys" aria-hidden="true"><kbd>⌘</kbd><kbd>C</kbd></div>
+            <h3>Copy as usual</h3>
+            <p>Text, rich text, images and files are saved to your history, encrypted, as you copy them.</p>
+          </li>
+          <li class="step">
+            <span class="step-num">2</span>
+            <div class="keys" aria-hidden="true"><kbd>⌘</kbd><kbd>⇧</kbd><kbd>V</kbd></div>
+            <h3>Open the picker</h3>
+            <p>Press <kbd>Cmd</kbd>/<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd> anywhere. Type a few letters to filter.</p>
+          </li>
+          <li class="step">
+            <span class="step-num">3</span>
+            <div class="keys" aria-hidden="true"><kbd class="wide">↵</kbd></div>
+            <h3>Paste it back</h3>
+            <p><kbd>Enter</kbd> pastes into the app you were using. <kbd>Shift</kbd> + <kbd>Enter</kbd> pastes the other way: plain text or formatted.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="section" id="privacy" aria-labelledby="privacy-title">
+      <div class="glow glow-left" aria-hidden="true"></div>
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">Privacy</p>
+          <h2 id="privacy-title">Built like a vault, not like a cloud service</h2>
+          <p>You copy passwords, addresses, messages and work you have not shared yet. A clipboard manager stores all of it, so Clipsa keeps it on your device and unreadable to anyone else.</p>
+        </div>
+
+        <ul class="bento">
+          <li class="card bento-hero">
+            <div class="card-text">
+              <span class="icon-badge"><svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+              <h3>Encrypted by default</h3>
+              <p>Each item is encrypted individually with AES-256-GCM before it is written to disk, with nothing to set up. The key is kept in your OS keychain, not next to the data, and history lives in a local database: no account, no server, nothing to upload.</p>
+            </div>
+            <div class="cipher" aria-hidden="true">
+              <div class="cipher-panel cipher-plain">
+                <p class="cipher-label"><span class="dot dot-bad"></span>A plain-text history file</p>
+                <code>API_KEY=sk_live_51Hx9Q…</code>
+                <code>Recovery code: 4F7K-9QPL</code>
+                <code>Meet me at 14 Elm Street</code>
+                <code>IBAN DE89 3704 0044 05…</code>
+              </div>
+              <div class="cipher-arrow"><svg class="i" viewBox="0 0 24 24" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+              <div class="cipher-panel cipher-sealed">
+                <p class="cipher-label"><span class="dot dot-good"></span>Clipsa's database</p>
+                <code>q9Xv2+LmR0aT8fKc1Zp…</code>
+                <code>Hc7Wb0eY4uN+Qd3sJk…</code>
+                <code>0rTzP5gA9mVx/Le2Uy…</code>
+                <code>Kb6NwQ1o+Fh8sXr3Di…</code>
+              </div>
+            </div>
+          </li>
+          <li class="card">
+            <span class="icon-badge"><svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3l18 18"/><path d="M10.6 5.1A9.8 9.8 0 0 1 12 5c6 0 10 7 10 7a17.6 17.6 0 0 1-3.1 3.9M6.6 6.6C3.8 8.4 2 12 2 12s4 7 10 7a9.6 9.6 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></span>
+            <h3>Password copies skipped</h3>
+            <p>Copies that password managers mark as concealed or transient are never recorded (macOS and Windows). You can also exclude whole apps.</p>
+          </li>
+          <li class="card">
+            <span class="icon-badge"><svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 11c0 3.5-1 6.5-2.5 8.5"/><path d="M8.5 8.5A4 4 0 0 1 16 11c0 1.6-.1 3.1-.4 4.5"/><path d="M5.2 6.6A8 8 0 0 1 20 11c0 2.4-.2 4.6-.6 6.5"/><path d="M4 11c0 2-.4 3.8-1 5.3"/></svg></span>
+            <h3>App lock</h3>
+            <p>Require Touch ID or your login password (macOS) or Windows Hello to see your history after Clipsa has been in the background.</p>
+          </li>
+          <li class="card">
+            <span class="icon-badge"><svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3l18 18"/><path d="M8.5 16.4a5 5 0 0 1 7 0M5 12.9a10 10 0 0 1 4.3-2.6M19 12.9a10 10 0 0 0-2.3-1.7M2 9.3a15 15 0 0 1 4.3-2.7M22 9.3A15 15 0 0 0 11 5.1"/><path d="M12 20h.01"/></svg></span>
+            <h3>No network by default</h3>
+            <p>No requests unless you opt in to update checks. No telemetry, analytics or crash reporting.</p>
+          </li>
+          <li class="card">
+            <span class="icon-badge"><svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/><path d="M10 10v6M14 10v6"/></svg></span>
+            <h3>Deleted means overwritten</h3>
+            <p>The database runs with secure delete, so removed items are overwritten instead of lingering in free space.</p>
+          </li>
+          <li class="card">
+            <span class="icon-badge"><svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg></span>
+            <h3>Open source</h3>
+            <p>All of the code is on GitHub under the MIT license, and the <a href="https://github.com/mordamax/clipsa.dev/blob/master/docs/security.md">security model</a> is documented, including its limits.</p>
+          </li>
+        </ul>
+
+        <div class="why" id="why-encrypt">
+          <div class="why-head">
+            <h3>Why encrypt, if password copies are skipped?</h3>
+            <p>Skipping only catches copies that a password manager explicitly marks as secret. Most sensitive things people copy carry no such mark, so a clipboard history slowly becomes a months-long log of them.</p>
+          </div>
+          <div class="why-lists">
+            <div class="why-list why-skipped">
+              <h4>Skipped automatically</h4>
+              <ul>
+                <li>A password from 1Password or Bitwarden (macOS and Windows)</li>
+                <li>Copies from apps you exclude (macOS and Windows)</li>
+              </ul>
+            </div>
+            <div class="why-list why-saved">
+              <h4>Still saved, so encrypted</h4>
+              <ul>
+                <li>A password from Notes, a chat or a text file</li>
+                <li>2FA and recovery codes</li>
+                <li>API keys and tokens from a terminal or dashboard</li>
+                <li>Seed phrases, card numbers, bank details</li>
+                <li>Private messages, addresses, medical or legal text</li>
+              </ul>
+            </div>
+          </div>
+          <p class="why-foot">Encryption keeps that log unreadable when the database file leaves Clipsa's hands: in Time Machine or cloud backups, on an unencrypted backup drive, when malware or a sync tool copies app data folders, or when another administrator account reads your files. Without the key from your keychain, the file is noise.</p>
+        </div>
+
+        <p class="limits"><strong>Limits.</strong> Item contents are encrypted; metadata such as content type, size and timestamps, and your settings, are not. Clipsa protects history at rest, such as a copied or backed-up database file. It is not a sandbox against malware: code running as your user while you are logged in can read the clipboard directly.</p>
+      </div>
+    </section>
+
+    <section class="section" id="features" aria-labelledby="features-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">Features</p>
+          <h2 id="features-title">Everything you copied, one shortcut away</h2>
+          <p>A fast, keyboard-first history for everything you copy, with the pieces you reuse kept close.</p>
+        </div>
+
+        <div class="story">
+          <div class="story-copy">
+            <p class="eyebrow">Quick picker</p>
+            <h3>Find it in a few keystrokes</h3>
+            <p>Press <kbd>Cmd</kbd>/<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd> in any app. Type a few letters and <kbd>Enter</kbd> pastes the item straight into the app you were using.</p>
+            <ul class="checks">
+              <li>Pinned items and snippets come first.</li>
+              <li><kbd>Shift</kbd> + <kbd>Enter</kbd> pastes as plain text; <kbd>Cmd/Ctrl</kbd> + <kbd>1</kbd>–<kbd>9</kbd> pastes one of the first nine items.</li>
+              <li>The hotkey is configurable, or you can turn it off.</li>
+            </ul>
+          </div>
+          <div class="story-visual">
+            <img class="shot-picker" src="assets/app-picker.webp" width="760" height="480" loading="lazy" alt="The quick picker: pinned items first with a pin icon, today's copies below with ⌘1 to ⌘9 shortcuts, type filters next to the search field and a preview of the selected image with its details on the right.">
+          </div>
+        </div>
+
+        <div class="story story-flip">
+          <div class="story-copy">
+            <p class="eyebrow">Pinned items &amp; snippets</p>
+            <h3>Keep what you paste every day</h3>
+            <p>Pin anything to keep it forever. Pinned items are exempt from retention and "Clear history". Give them a name, or write reusable text snippets for sign-offs, links and templates.</p>
+            <ul class="checks">
+              <li>Named items show their title in the picker.</li>
+              <li>Edit a snippet's text and title in place.</li>
+            </ul>
+          </div>
+          <div class="story-visual bleed">
+            <figure class="window">
+              <div class="window-bar" aria-hidden="true"><span class="dots"><i></i><i></i><i></i></span><span>Clipsa</span></div>
+              <img src="assets/app-pinned.webp" width="900" height="561" loading="lazy" alt="The Pinned view of the Clipsa window with a New snippet button and three named items: Stand-up link, Email sign-off and Bug report template. Email sign-off is selected and shown in a detail pane with Copy, Unpin and Edit buttons, its full text and details such as characters and size.">
+            </figure>
+          </div>
+        </div>
+
+        <div class="story">
+          <div class="story-copy">
+            <p class="eyebrow">Rich content</p>
+            <h3>Text, rich text, images and files</h3>
+            <p>Rich text keeps its HTML and plain-text versions, images are stored as PNG and file copies as their paths. Copying an item again restores its original format.</p>
+            <ul class="checks">
+              <li>Search the text and titles of your history.</li>
+              <li>Filter by content type.</li>
+            </ul>
+          </div>
+          <div class="story-visual bleed">
+            <figure class="window">
+              <div class="window-bar" aria-hidden="true"><span class="dots"><i></i><i></i><i></i></span><span>Clipsa</span></div>
+              <img src="assets/app-history.webp" width="900" height="800" loading="lazy" alt="The Clipsa history window grouped by day: a git command, a rich-text note, an image of a mountain sunset, a link, two file paths, an SQL query and more, with a search box and content-type filters above. The selected image is previewed in a detail pane with its dimensions and size.">
+            </figure>
+          </div>
+        </div>
+
+        <div class="story story-flip">
+          <div class="story-copy">
+            <p class="eyebrow">App lock</p>
+            <h3>Locked when you step away</h3>
+            <p>Require Touch ID or your login password (macOS) or Windows Hello to see history after Clipsa has been in the background for a time you choose. Capture keeps running while locked.</p>
+            <ul class="checks">
+              <li>Locks the history window and the quick picker.</li>
+              <li>Lock as soon as Clipsa is hidden, or after a delay you choose.</li>
+            </ul>
+          </div>
+          <div class="story-visual bleed duo">
+            <figure class="window duo-back">
+              <div class="window-bar" aria-hidden="true"><span class="dots"><i></i><i></i><i></i></span><span>Settings</span></div>
+              <img src="assets/app-settings-privacy.webp" width="900" height="640" loading="lazy" alt="Clipsa settings, Capture and privacy: Ignore passwords turned on, two excluded apps (com.1password.1password and com.bitwarden.desktop), and the Privacy lock section with Require Touch ID or password to open Clipsa turned on and Lock after set to 5 minutes.">
+            </figure>
+            <figure class="window duo-front">
+              <div class="window-bar" aria-hidden="true"><span class="dots"><i></i><i></i><i></i></span><span>Clipsa</span></div>
+              <img src="assets/app-lock.webp" width="760" height="520" loading="lazy" alt="The Clipsa window while locked: the app icon, the words Clipsa is locked, and an Unlock with Touch ID button.">
+            </figure>
+          </div>
+        </div>
+
+        <ul class="mini-grid" aria-label="More features">
+          <li>
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+            <h3>Paste as plain text</h3>
+            <p>Strip formatting with <kbd>Shift</kbd> + <kbd>Enter</kbd>, or make plain text the default.</p>
+          </li>
+          <li>
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+            <h3>Search and filter</h3>
+            <p>Search the text and titles of your history and filter by content type.</p>
+          </li>
+          <li>
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            <h3>Retention limits</h3>
+            <p>Cap the number of items and delete items after a number of days, checked after every capture and hourly.</p>
+          </li>
+          <li>
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>
+            <h3>Per-app exclusions</h3>
+            <p>Never record copies from an app: by bundle id on macOS (<code>com.agilebits.onepassword7</code>) or exe name on Windows (<code>keepass.exe</code>).</p>
+          </li>
+          <li>
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v8"/><path d="M6.3 7.3a8 8 0 1 0 11.4 0"/></svg>
+            <h3>Launch at login</h3>
+            <p>Optional. Lives in the tray with Open, Pause/Resume monitoring and Quit.</p>
+          </li>
+          <li>
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
+            <h3>Light and dark themes</h3>
+            <p>Light, dark or follow the system, plus a compact mode for a denser list.</p>
+          </li>
+          <li>
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4"/></svg>
+            <h3>Updates with release notes</h3>
+            <p>Opt-in update checks show what's new before you install. Updates are verified against a signing key built into the app.</p>
+          </li>
+          <li>
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>
+            <h3>Keyboard-first</h3>
+            <p><kbd>↑</kbd> <kbd>↓</kbd> to move, <kbd>Cmd/Ctrl</kbd> + <kbd>1</kbd>–<kbd>9</kbd> to paste one of the first nine, <kbd>Tab</kbd> to switch the type filter, <kbd>Cmd/Ctrl</kbd> + <kbd>C</kbd> to copy without pasting, <kbd>Cmd/Ctrl</kbd> + <kbd>,</kbd> for Settings, <kbd>Esc</kbd> to close.</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="compare" aria-labelledby="compare-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">Compare</p>
+          <h2 id="compare-title">How Clipsa stacks up</h2>
+          <p>Some apps are ahead on sync, OCR and text actions. Here is where Clipsa is different.</p>
+        </div>
+        <div class="table-scroll mini-compare" role="region" aria-labelledby="compare-title" tabindex="0">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col"><span class="sr-only">Feature</span></th>
+                <th scope="col" class="ours">Clipsa</th>
+                <th scope="col">Maccy</th>
+                <th scope="col">Paste</th>
+                <th scope="col">Raycast</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Encrypted by default</th>
+                <td class="ours"><span class="v yes">Yes, always</span></td>
+                <td><span class="v no">No</span><span class="note">Plain SQLite</span></td>
+                <td><span class="v nd">Not documented</span></td>
+                <td><span class="v yes">Yes</span><span class="note">Vendor's claim; closed source</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Open source</th>
+                <td class="ours"><span class="v yes">MIT</span></td>
+                <td><span class="v yes">MIT</span></td>
+                <td><span class="v no">No</span></td>
+                <td><span class="v no">No</span></td>
+              </tr>
+              <tr>
+                <th scope="row">macOS, Windows and Linux</th>
+                <td class="ours"><span class="v yes">All three</span></td>
+                <td><span class="v no">No</span><span class="note">macOS</span></td>
+                <td><span class="v no">No</span><span class="note">macOS, iPhone, iPad</span></td>
+                <td><span class="v no">No</span><span class="note">macOS, Windows</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Free</th>
+                <td class="ours"><span class="v yes">Free</span></td>
+                <td><span class="v yes">Free</span><span class="note">$9.99 on the Mac App Store, as support</span></td>
+                <td><span class="v no">$29.99/year</span></td>
+                <td><span class="v partial">Free</span><span class="note">History kept 3 months; unlimited with Pro</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="center-link"><a class="btn btn-ghost" href="compare">See the full comparison <span aria-hidden="true">→</span></a></p>
+      </div>
+    </section>
+
+    <section class="section" id="download" aria-labelledby="download-title">
+      <div class="glow glow-right" aria-hidden="true"></div>
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">Download</p>
+          <h2 id="download-title">Get Clipsa for your system</h2>
+          <p>Each system exposes different clipboard details. Here is exactly what works where.</p>
+        </div>
+        <ul class="platforms">
+          <li class="card platform">
+            <h3>macOS</h3>
+            <p class="platform-files"><code>.dmg</code> for Apple Silicon and Intel</p>
+            <ul class="caps">
+              <li class="cap-yes">Text, rich text, images and files</li>
+              <li class="cap-yes">Skips password-manager copies</li>
+              <li class="cap-yes">Per-app exclusion by bundle id</li>
+              <li class="cap-yes">Pastes into the previous app <span>(needs Accessibility permission)</span></li>
+              <li class="cap-yes">App lock with Touch ID or login password</li>
+              <li class="cap-yes">Key stored in the Keychain</li>
+            </ul>
+            <a class="btn btn-primary" href="https://github.com/mordamax/clipsa.dev/releases/latest">Download for macOS</a>
+            <div class="platform-foot">
+              <p class="platform-alt">Or with Homebrew:</p>
+              <pre><code>brew install --cask mordamax/tap/clipsa</code></pre>
+            </div>
+          </li>
+          <li class="card platform">
+            <h3>Windows</h3>
+            <p class="platform-files"><code>.msi</code> or NSIS <code>.exe</code> installer</p>
+            <ul class="caps">
+              <li class="cap-yes">Text, rich text, images and files</li>
+              <li class="cap-yes">Skips password-manager copies</li>
+              <li class="cap-yes">Per-app exclusion by exe name</li>
+              <li class="cap-yes">Pastes into the previous app</li>
+              <li class="cap-yes">App lock with Windows Hello <span>(must be set up)</span></li>
+              <li class="cap-yes">Key stored in Credential Manager</li>
+            </ul>
+            <a class="btn btn-primary" href="https://github.com/mordamax/clipsa.dev/releases/latest">Download for Windows</a>
+            <div class="platform-foot">
+              <p class="platform-note">Windows builds are not code-signed yet, so SmartScreen may show a warning.</p>
+            </div>
+          </li>
+          <li class="card platform">
+            <h3>Linux</h3>
+            <p class="platform-files"><code>.AppImage</code>, <code>.deb</code> or <code>.rpm</code></p>
+            <ul class="caps">
+              <li class="cap-yes">Text, rich text, images and files</li>
+              <li class="cap-yes">Pastes into the previous app on X11 <span>(Wayland compositors may block simulated keystrokes)</span></li>
+              <li class="cap-yes">Key stored in the Secret Service (GNOME Keyring, KWallet, …)</li>
+              <li class="cap-no"><span class="sr-only">Not available: </span>Skipping password-manager copies</li>
+              <li class="cap-no"><span class="sr-only">Not available: </span>Per-app exclusion</li>
+              <li class="cap-no"><span class="sr-only">Not available: </span>App lock</li>
+            </ul>
+            <a class="btn btn-primary" href="https://github.com/mordamax/clipsa.dev/releases/latest">Download for Linux</a>
+            <div class="platform-foot">
+              <p class="platform-note">Needs a Secret Service provider such as GNOME Keyring or KWallet to store the key. Linux can't tell which app owns a copy or see password-manager markers: use <strong>Pause monitoring</strong> in the tray before copying secrets, or delete the item afterwards.</p>
+            </div>
+          </li>
+        </ul>
+        <p class="section-note">Updates are optional: on the first-run screen you choose whether Clipsa may check GitHub Releases for updates. Updates are verified against a signing key built into the app before they are installed. Prefer to build it yourself? See the <a href="https://github.com/mordamax/clipsa.dev#development">development instructions</a>.</p>
+      </div>
+    </section>
+
+    <section class="section" id="pricing" aria-labelledby="pricing-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">Pricing</p>
+          <h2 id="pricing-title">Free. Every feature.</h2>
+          <p>No ads, no account, no trial and no history cap. Every feature is in the free download.</p>
+        </div>
+        <ul class="pricing">
+          <li class="card price price-main">
+            <h3>Clipsa</h3>
+            <p class="price-amount">Free <span>MIT licensed</span></p>
+            <ul class="checks">
+              <li>Every feature, no limits</li>
+              <li>macOS, Windows and Linux</li>
+              <li>Pastes straight into the app you're in</li>
+              <li>Optional, signed update checks</li>
+            </ul>
+            <a class="btn btn-primary" href="#download">Download Clipsa</a>
+          </li>
+          <li class="card price">
+            <h3>Mac App Store edition <span class="badge">Coming</span></h3>
+            <p class="price-amount">Paid <span>as a way to support development</span></p>
+            <p>For people who prefer installing and updating through the App Store. It unlocks nothing extra. Because of App Store rules, that edition copies the item from the quick picker and you press <kbd>⌘</kbd> <kbd>V</kbd> yourself, while the free download pastes for you.</p>
+          </li>
+          <li class="card price">
+            <h3>Sponsor</h3>
+            <p class="price-amount">Optional <span>through GitHub Sponsors</span></p>
+            <p>You can also support Clipsa through GitHub Sponsors. Starring the repository, reporting bugs and contributing code help too.</p>
+            <a class="btn btn-ghost" href="https://github.com/sponsors/mordamax">
+              <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+              Sponsor on GitHub
+            </a>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="faq" aria-labelledby="faq-title">
+      <div class="container faq-layout">
+        <div class="section-head section-head-left">
+          <p class="eyebrow">FAQ</p>
+          <h2 id="faq-title">Questions, answered</h2>
+          <p>Something missing? Ask in <a href="https://github.com/mordamax/clipsa.dev/issues">GitHub issues</a>.</p>
+        </div>
+        <div class="faq">
+          <details>
+            <summary>Is Clipsa free?</summary>
+            <div>
+              <p>Yes. The download from this site is free and open source under the <a href="https://github.com/mordamax/clipsa.dev/blob/master/LICENSE">MIT license</a>, with every feature, no trial and no account. A paid Mac App Store edition is coming as an optional way to support the project; it has the same features, except that App Store rules don't let it paste into other apps for you. You can also <a href="https://github.com/sponsors/mordamax">support Clipsa on GitHub Sponsors</a>.</p>
+            </div>
+          </details>
+          <details>
+            <summary>Does Clipsa send my data anywhere?</summary>
+            <div>
+              <p>No. Your clipboard history never leaves your computer. Clipsa has no telemetry, analytics or crash reporting.</p>
+              <p>The only network request Clipsa can make is the update check, and it is off until you opt in on the first-run screen or in Settings. When enabled, Clipsa asks GitHub Releases for the latest version at startup and once a day. See the <a href="privacy">privacy policy</a>.</p>
+            </div>
+          </details>
+          <details>
+            <summary>How is my history encrypted?</summary>
+            <div>
+              <p>Each item's content (text, HTML, image bytes, file paths) is encrypted with AES-256-GCM using a fresh random 96-bit nonce. A random 256-bit master key is generated on first run and stored in your OS keychain. Duplicates are detected with HMAC-SHA256 under a key derived from the master key, so the database holds no plain hash of your content.</p>
+              <p>If keychain access is denied or fails, Clipsa shows an error and refuses to start. It never silently creates a new key, because that would make your existing history unreadable.</p>
+              <p>Not encrypted: content type, size, timestamps and settings. Read the full <a href="https://github.com/mordamax/clipsa.dev/blob/master/docs/security.md">security model</a>.</p>
+            </div>
+          </details>
+          <details>
+            <summary>What about passwords?</summary>
+            <div>
+              <p>On macOS and Windows, Clipsa skips copies that password managers mark as concealed, transient or auto-generated. This is on by default. You can also exclude apps so nothing copied while they are in front is recorded.</p>
+              <p>Linux does not expose these markers or the app that made a copy. There, use <strong>Pause monitoring</strong> from the tray, or delete the item afterwards.</p>
+            </div>
+          </details>
+          <details>
+            <summary>Why does macOS ask for Accessibility permission?</summary>
+            <div>
+              <p>Pasting into another app means simulating <kbd>Cmd</kbd> + <kbd>V</kbd>, and macOS only allows that for apps with the Accessibility permission. Clipsa needs it only for pasting from the quick picker; capturing your clipboard does not need it.</p>
+              <p>Grant it in System Settings → Privacy &amp; Security → Accessibility, or let Clipsa request it from its Settings. Until then, copy an item from the history window and paste it yourself.</p>
+            </div>
+          </details>
+          <details>
+            <summary>Where is my history stored?</summary>
+            <div>
+              <p>In <code>clipsa/clipboard.db</code> inside your data directory: <code>~/Library/Application Support</code> on macOS, <code>%APPDATA%</code> on Windows and <code>$XDG_DATA_HOME</code> (or <code>~/.local/share</code>) on Linux.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-band" aria-labelledby="cta-title">
+      <div class="container">
+        <div class="cta-inner">
+          <img src="assets/icon.svg" alt="" width="72" height="72">
+          <h2 id="cta-title">Keep everything you copy. Privately.</h2>
+          <p>Free and open source for macOS, Windows and Linux.</p>
+          <div class="button-row">
+            <a class="btn btn-primary btn-lg" href="https://github.com/mordamax/clipsa.dev/releases/latest">
+              <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+              Download Clipsa
+            </a>
+            <a class="btn btn-ghost btn-lg" href="https://github.com/mordamax/clipsa.dev">View source</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="./"><img src="assets/icon.svg" alt="" width="28" height="28"> Clipsa</a>
+        <p>The private clipboard manager for macOS, Windows and Linux.</p>
+        <p class="footer-copy">© 2025–2026 Clipsa contributors</p>
+      </div>
+      <nav aria-labelledby="footer-product">
+        <h2 id="footer-product">Product</h2>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#privacy">Privacy &amp; security</a></li>
+          <li><a href="compare">Compare</a></li>
+          <li><a href="#download">Download</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </nav>
+      <nav aria-labelledby="footer-project">
+        <h2 id="footer-project">Project</h2>
+        <ul>
+          <li><a href="https://github.com/mordamax/clipsa.dev">GitHub</a></li>
+          <li><a href="https://github.com/mordamax/clipsa.dev/blob/master/docs/development-roadmap.md">Roadmap</a></li>
+          <li><a href="https://github.com/mordamax/clipsa.dev/blob/master/CHANGELOG.md">Changelog</a></li>
+          <li><a href="https://github.com/sponsors/mordamax">Sponsor</a></li>
+        </ul>
+      </nav>
+      <nav aria-labelledby="footer-legal">
+        <h2 id="footer-legal">Legal</h2>
+        <ul>
+          <li><a href="privacy">Privacy policy</a></li>
+          <li><a href="https://github.com/mordamax/clipsa.dev/blob/master/LICENSE">MIT license</a></li>
+        </ul>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

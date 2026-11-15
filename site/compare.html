@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Clipsa compared with Maccy, Paste, Raycast, ClipBook, Pastebot, CopyQ, Ditto and Win+V</title>
+  <meta name="description" content="An honest, sourced comparison of Clipsa with other clipboard managers: where Clipsa is ahead (encryption by default, open source, all three desktop systems, app lock) and where others are ahead (sync, mobile, OCR, text actions).">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#08090d">
+  <link rel="canonical" href="https://clipsa.dev/compare">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav" aria-label="Main">
+      <a class="brand" href="./">
+        <img src="assets/icon.svg" alt="" width="28" height="28">
+        Clipsa
+      </a>
+      <ul class="nav-links">
+        <li><a href="./#features">Features</a></li>
+        <li><a href="./#privacy">Privacy</a></li>
+        <li><a href="compare" aria-current="page">Compare</a></li>
+        <li><a href="./#faq">FAQ</a></li>
+        <li><a href="https://github.com/mordamax/clipsa.dev">GitHub</a></li>
+      </ul>
+      <a class="btn btn-primary btn-sm" href="./#download">Download</a>
+      <details class="nav-menu">
+        <summary aria-label="Menu">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </summary>
+        <ul>
+          <li><a href="./#features">Features</a></li>
+          <li><a href="./#privacy">Privacy</a></li>
+          <li><a href="compare" aria-current="page">Compare</a></li>
+          <li><a href="./#faq">FAQ</a></li>
+          <li><a href="https://github.com/mordamax/clipsa.dev">GitHub</a></li>
+        </ul>
+      </details>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="page-hero" aria-labelledby="compare-title">
+      <div class="container">
+        <p class="eyebrow">Compare</p>
+        <h1 id="compare-title">Clipsa vs other clipboard managers</h1>
+        <p class="hero-lead">Clipsa is not the right clipboard manager for everyone. Here is where it is ahead, where other apps are ahead, and the sources for every claim about them.</p>
+        <div class="button-row">
+          <a class="btn btn-primary btn-lg" href="https://github.com/mordamax/clipsa.dev/releases/latest">
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+            Download Clipsa
+          </a>
+          <a class="btn btn-ghost btn-lg" href="#table">Jump to the table</a>
+        </div>
+        <p class="updated">Updated November 2026</p>
+      </div>
+    </section>
+
+    <section class="section section-tight" aria-labelledby="verdict-title">
+      <div class="container">
+        <h2 id="verdict-title" class="sr-only">Built for different people</h2>
+        <div class="verdict">
+          <div class="card verdict-ours">
+            <h3>Choose Clipsa if…</h3>
+            <ul class="checks">
+              <li><strong>You want history encrypted by default, and to be able to check it.</strong> Every item is encrypted on disk with no setting to turn on. Maccy, ClipBook, Ditto and EcoPaste store history as plain SQLite (checked in their source code). CopyQ can encrypt, but it is off by default. Raycast says its history is encrypted, but its code is closed.</li>
+              <li><strong>You work across macOS, Windows and Linux.</strong> Of the apps below, only CopyQ also runs on all three.</li>
+              <li><strong>You want an app lock with Touch ID or Windows Hello.</strong> None of the other apps documents one. Paste's request for it is still open.</li>
+              <li><strong>You want it free with no limits.</strong> No trial, no history cap, no subscription.</li>
+            </ul>
+          </div>
+          <div class="card verdict-other">
+            <h3>Pick something else if…</h3>
+            <ul class="checks">
+              <li><strong>You need sync and phone apps.</strong> Paste syncs through iCloud to iPhone and iPad. Pastebot syncs between Macs. Clipsa is desktop-only and keeps history on one computer.</li>
+              <li><strong>You search text in images (OCR).</strong> Maccy, Paste, ClipBook and Raycast can search text inside screenshots. Clipsa cannot yet.</li>
+              <li><strong>You rely on text actions and automation.</strong> ClipBook has dozens of text transformations, Pastebot has filters and a command-line tool, CopyQ is fully scriptable. Clipsa has plain-text paste only.</li>
+              <li><strong>You need a paste stack.</strong> Paste, ClipBook, Raycast and Pastebot can paste a series of items in order.</li>
+            </ul>
+          </div>
+        </div>
+        <p class="standard-note">Some things we used to think set Clipsa apart are in fact standard: skipping copies that password managers mark as secret, excluding apps, plain-text paste, pinning, and working without an account. Most apps below do these too, so we don't claim them as advantages.</p>
+      </div>
+    </section>
+
+    <section class="section section-tight" id="table" aria-labelledby="table-title">
+      <div class="container container-wide">
+        <div class="section-head">
+          <p class="eyebrow">Side by side</p>
+          <h2 id="table-title">The full comparison</h2>
+          <p>Checked on 14 November 2026. Apps change, so please check their own pages before deciding.</p>
+        </div>
+        <ul class="legend" aria-label="Legend">
+          <li><span class="v yes">Yes</span></li>
+          <li><span class="v partial">Partly, or with limits</span></li>
+          <li><span class="v no">No</span></li>
+          <li><span class="v nd">Not documented: the vendor does not say either way. It does not mean the feature is missing.</span></li>
+        </ul>
+        <div class="table-scroll compare-scroll" role="region" aria-labelledby="table-title" tabindex="0">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th scope="col"><span class="sr-only">Feature</span></th>
+                <th scope="col" class="ours">Clipsa <span class="ours-badge">Ours</span></th>
+                <th scope="col">Maccy</th>
+                <th scope="col">Paste</th>
+                <th scope="col">Raycast</th>
+                <th scope="col">ClipBook</th>
+                <th scope="col">Pastebot 3</th>
+                <th scope="col">CopyQ</th>
+                <th scope="col">Ditto</th>
+                <th scope="col">Windows Win+V</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="group"><th colspan="10" scope="colgroup"><span>Privacy &amp; security</span></th></tr>
+              <tr>
+                <th scope="row">History encrypted on disk</th>
+                <td class="ours"><span class="v yes">Yes, always</span><span class="note">AES-256-GCM per item, key in the OS keychain</span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span><span class="note">Plain SQLite</span></td>
+                <td><span class="v nd" title="Not documented"><span class="sr-only">Not documented</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span><span class="note">Vendor's claim; closed source</span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span><span class="note">Plain SQLite</span></td>
+                <td><span class="v nd" title="Not documented"><span class="sr-only">Not documented</span></span></td>
+                <td><span class="v partial">Optional</span><span class="note">Off by default; password-based</span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span><span class="note">Plain SQLite</span></td>
+                <td><span class="v nd" title="Not documented"><span class="sr-only">Not documented</span></span></td>
+              </tr>
+              <tr>
+                <th scope="row">Skips password-manager copies</th>
+                <td class="ours"><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span><span class="note">macOS and Windows</span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v nd" title="Not documented"><span class="sr-only">Not documented</span></span><span class="note">Has an app blocklist</span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span><span class="note">When the copying app opts out</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Lock with Touch ID / Windows Hello</th>
+                <td class="ours"><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span><span class="note">Requested by users</span></td>
+                <td><span class="v nd" title="Not documented"><span class="sr-only">Not documented</span></span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v nd" title="Not documented"><span class="sr-only">Not documented</span></span></td>
+                <td><span class="v partial">Password</span><span class="note">Only with encryption on</span></td>
+                <td><span class="v nd" title="Not documented"><span class="sr-only">Not documented</span></span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span><span class="note">Windows sign-in only</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Exclude apps</th>
+                <td class="ours"><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span><span class="note">macOS and Windows</span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v partial">By window title</span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+              </tr>
+              <tr>
+                <th scope="row">Account needed</th>
+                <td class="ours"><span class="v yes">None</span></td>
+                <td><span class="v yes">None</span></td>
+                <td><span class="v yes">None</span><span class="note">Apple Account for sync</span></td>
+                <td><span class="v yes">None</span><span class="note">For the free plan</span></td>
+                <td><span class="v yes">None</span></td>
+                <td><span class="v yes">None</span></td>
+                <td><span class="v yes">None</span></td>
+                <td><span class="v yes">None</span></td>
+                <td><span class="v yes">None</span><span class="note">Microsoft account for sync</span></td>
+              </tr>
+              <tr class="group"><th colspan="10" scope="colgroup"><span>Capture &amp; paste</span></th></tr>
+              <tr>
+                <th scope="row">Images and files</th>
+                <td class="ours"><span class="v yes">Both</span></td>
+                <td><span class="v yes">Both</span></td>
+                <td><span class="v yes">Both</span></td>
+                <td><span class="v yes">Both</span></td>
+                <td><span class="v yes">Both</span></td>
+                <td><span class="v yes">Both</span></td>
+                <td><span class="v yes">Both</span></td>
+                <td><span class="v yes">Both</span></td>
+                <td><span class="v partial">Images only</span><span class="note">25 items, cleared on restart</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Pinned items and snippets</th>
+                <td class="ours"><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes">Pins</span></td>
+                <td><span class="v yes">Pinboards</span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes">Favorites</span></td>
+                <td><span class="v yes">Pastebins</span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes">Pins</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Pastes into the app you're in</th>
+                <td class="ours"><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span><span class="note">App Store edition: copy, then ⌘V</span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+              </tr>
+              <tr>
+                <th scope="row">Paste stack</th>
+                <td class="ours"><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v partial">With scripts</span></td>
+                <td><span class="v nd" title="Not documented"><span class="sr-only">Not documented</span></span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+              </tr>
+              <tr>
+                <th scope="row">Text transformations</th>
+                <td class="ours"><span class="v partial">Plain text only</span></td>
+                <td><span class="v partial">Via Shortcuts</span></td>
+                <td><span class="v partial">Writing Tools</span></td>
+                <td><span class="v partial">Edit, AI (Pro)</span></td>
+                <td><span class="v yes">78 built in</span></td>
+                <td><span class="v yes">Filters, CLI</span></td>
+                <td><span class="v yes">Scripting</span></td>
+                <td><span class="v yes">Special Paste</span></td>
+                <td><span class="v partial">With PowerToys</span></td>
+              </tr>
+              <tr class="group"><th colspan="10" scope="colgroup"><span>Sync &amp; extras</span></th></tr>
+              <tr>
+                <th scope="row">Sync between devices</th>
+                <td class="ours"><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v yes">iCloud</span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span><span class="note">History is not synced</span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span><span class="note">Export and import</span></td>
+                <td><span class="v yes">iCloud</span><span class="note">Between Macs</span></td>
+                <td><span class="v partial">Folder sync</span></td>
+                <td><span class="v partial">Local network</span></td>
+                <td><span class="v yes">Microsoft account</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Phone app</th>
+                <td class="ours"><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v yes">iPhone, iPad</span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span><span class="note">History isn't synced to the iOS app</span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v partial">Android, limited</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Search text in images (OCR)</th>
+                <td class="ours"><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v yes" title="Yes"><span class="sr-only">Yes</span></span></td>
+                <td><span class="v nd" title="Not documented"><span class="sr-only">Not documented</span></span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+              </tr>
+              <tr class="group"><th colspan="10" scope="colgroup"><span>Price &amp; platform</span></th></tr>
+              <tr>
+                <th scope="row">Platforms</th>
+                <td class="ours"><span class="t">macOS, Windows, Linux</span></td>
+                <td><span class="t">macOS</span></td>
+                <td><span class="t">macOS, iPhone, iPad</span></td>
+                <td><span class="t">macOS, Windows</span></td>
+                <td><span class="t">macOS</span></td>
+                <td><span class="t">macOS 26+</span></td>
+                <td><span class="t">macOS, Windows, Linux</span></td>
+                <td><span class="t">Windows</span></td>
+                <td><span class="t">Windows</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Price</th>
+                <td class="ours"><span class="t">Free</span><span class="note">Paid Mac App Store edition coming, as support</span></td>
+                <td><span class="t">Free</span><span class="note">$9.99 on the Mac App Store, as support</span></td>
+                <td><span class="t">$29.99/year</span><span class="note">7-day trial; lifetime plan available</span></td>
+                <td><span class="t">Free</span><span class="note">History kept 3 months; unlimited with Pro ($96/year)</span></td>
+                <td><span class="t">One-time license</span><span class="note">After a 5-day trial</span></td>
+                <td><span class="t">$39 one-time</span><span class="note">Or $24.99/year on the App Store</span></td>
+                <td><span class="t">Free</span></td>
+                <td><span class="t">Free</span></td>
+                <td><span class="t">Built into Windows</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Open source</th>
+                <td class="ours"><span class="v yes">MIT</span></td>
+                <td><span class="v yes">MIT</span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v partial">Source available</span><span class="note">Personal, non-commercial license</span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+                <td><span class="v yes">GPL-3.0</span></td>
+                <td><span class="v yes">GPL-3.0</span></td>
+                <td><span class="v no" title="No"><span class="sr-only">No</span></span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="table-foot">On phones, scroll the table sideways. Feature names and the header row stay in place.</p>
+      </div>
+    </section>
+
+    <section class="section section-tight" aria-labelledby="choose-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">Recommendations</p>
+          <h2 id="choose-title">Which one should you pick?</h2>
+        </div>
+        <ul class="picks">
+          <li class="card pick-ours"><h3>Clipsa</h3><p>You want history that is encrypted without setting anything up, on any desktop system, with an optional Touch ID or Windows Hello lock, for free.</p></li>
+          <li class="card"><h3>Paste</h3><p>You want the same history on your Mac, iPhone and iPad and don't mind a subscription.</p></li>
+          <li class="card"><h3>Maccy</h3><p>You're on a Mac and want the simplest free app, with OCR, and don't need history encrypted on disk.</p></li>
+          <li class="card"><h3>ClipBook or Pastebot</h3><p>You transform text all day and want built-in actions, filters and paste stacks on a Mac.</p></li>
+          <li class="card"><h3>CopyQ</h3><p>You want to script everything and work across macOS, Windows and Linux, and can live with a more technical interface.</p></li>
+          <li class="card"><h3>Raycast</h3><p>You already use Raycast as your launcher and its 3-month free history is enough.</p></li>
+        </ul>
+        <p class="section-note">On Clipsa's list for the coming releases: text recognition in images, a paste stack, text actions, and optional end-to-end encrypted sync. See the <a href="https://github.com/mordamax/clipsa.dev/blob/master/docs/development-roadmap.md">roadmap</a>.</p>
+
+        <details class="sources" id="sources">
+          <summary>Sources</summary>
+          <div>
+            <p>For open-source apps we read the code; for the others, the vendor's own documentation. If something here is wrong or out of date, please <a href="https://github.com/mordamax/clipsa.dev/issues">open an issue</a> and we will fix it.</p>
+            <ul>
+              <li><strong>Maccy:</strong> <a href="https://maccy.app">maccy.app</a>, <a href="https://apps.apple.com/us/app/maccy/id1527619437">App Store listing</a>, source: <a href="https://github.com/p0deje/Maccy/blob/master/Maccy/Storage.swift">Storage.swift</a>, <a href="https://github.com/p0deje/Maccy/blob/master/Maccy/Clipboard.swift">Clipboard.swift</a>, <a href="https://github.com/p0deje/Maccy/blob/master/Maccy/Models/HistoryItem.swift">HistoryItem.swift</a></li>
+              <li><strong>Paste:</strong> <a href="https://pasteapp.io/pricing">pricing</a>, <a href="https://pasteapp.io/help/what-paste-captures">what Paste captures</a>, <a href="https://pasteapp.io/help/where-paste-stores-your-data">where Paste stores data</a>, <a href="https://pasteapp.io/help/search-and-filters">search</a>, <a href="https://pasteapp.io/help/using-paste-stack">Paste Stack</a>, <a href="https://pasteapp.io/ideas/45">Touch ID request</a></li>
+              <li><strong>Raycast:</strong> <a href="https://www.raycast.com/core-features/clipboard-history">clipboard history</a>, <a href="https://manual.raycast.com/clipboard-history">manual</a>, <a href="https://manual.raycast.com/cloud-sync">Cloud Sync</a>, <a href="https://www.raycast.com/pricing">pricing</a></li>
+              <li><strong>ClipBook:</strong> <a href="https://clipbook.app/">clipbook.app</a>, <a href="https://clipbook.app/pricing">pricing</a>, <a href="https://github.com/vladimir-ikryanov/ClipBook/blob/main/LICENSE.md">license</a>, source: <a href="https://github.com/vladimir-ikryanov/ClipBook/blob/main/ClipBook/Persistence/SQLiteHistoryStore.swift">SQLiteHistoryStore.swift</a></li>
+              <li><strong>Pastebot 3:</strong> <a href="https://tapbots.com/pastebot/">tapbots.com</a>, <a href="https://apps.apple.com/us/app/pastebot-3/id6761201231">App Store listing</a>, <a href="https://tapbots.net/pastebot3/privacy/">privacy</a></li>
+              <li><strong>CopyQ:</strong> <a href="https://github.com/hluk/CopyQ">repository</a>, <a href="https://github.com/hluk/CopyQ/blob/master/docs/security.rst">security</a>, <a href="https://github.com/hluk/CopyQ/blob/master/docs/password-protection.rst">password protection</a>, <a href="https://github.com/hluk/copyq/releases">releases</a></li>
+              <li><strong>Ditto:</strong> <a href="https://github.com/sabrogden/Ditto">repository</a>, source: <a href="https://github.com/sabrogden/Ditto/blob/master/src/DatabaseUtilities.cpp">DatabaseUtilities.cpp</a>, <a href="https://github.com/sabrogden/Ditto/blob/master/src/ClipboardViewer.cpp">ClipboardViewer.cpp</a></li>
+              <li><strong>Windows Win+V:</strong> <a href="https://support.microsoft.com/en-us/windows/apps/using-the-clipboard">Using the clipboard</a>, <a href="https://learn.microsoft.com/en-us/windows/win32/dataxchg/clipboard-formats">clipboard formats</a>, <a href="https://learn.microsoft.com/en-us/windows/powertoys/advanced-paste">PowerToys Advanced Paste</a></li>
+              <li><strong>EcoPaste</strong> (mentioned above): <a href="https://github.com/EcoPasteHub/EcoPaste">repository</a>, <a href="https://github.com/EcoPasteHub/EcoPaste/releases/tag/v1.0.0">v1.0.0 release notes</a></li>
+            </ul>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="cta-band" aria-labelledby="cta-title">
+      <div class="container">
+        <div class="cta-inner">
+          <img src="assets/icon.svg" alt="" width="72" height="72">
+          <h2 id="cta-title">Try Clipsa. It's free.</h2>
+          <p>Encrypted by default, open source, on macOS, Windows and Linux.</p>
+          <div class="button-row">
+            <a class="btn btn-primary btn-lg" href="https://github.com/mordamax/clipsa.dev/releases/latest">
+              <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+              Download Clipsa
+            </a>
+            <a class="btn btn-ghost btn-lg" href="./">Back to the overview</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="./"><img src="assets/icon.svg" alt="" width="28" height="28"> Clipsa</a>
+        <p>The private clipboard manager for macOS, Windows and Linux.</p>
+        <p class="footer-copy">© 2025–2026 Clipsa contributors</p>
+      </div>
+      <nav aria-labelledby="footer-product">
+        <h2 id="footer-product">Product</h2>
+        <ul>
+          <li><a href="./#features">Features</a></li>
+          <li><a href="./#privacy">Privacy &amp; security</a></li>
+          <li><a href="compare" aria-current="page">Compare</a></li>
+          <li><a href="./#download">Download</a></li>
+          <li><a href="./#faq">FAQ</a></li>
+        </ul>
+      </nav>
+      <nav aria-labelledby="footer-project">
+        <h2 id="footer-project">Project</h2>
+        <ul>
+          <li><a href="https://github.com/mordamax/clipsa.dev">GitHub</a></li>
+          <li><a href="https://github.com/mordamax/clipsa.dev/blob/master/docs/development-roadmap.md">Roadmap</a></li>
+          <li><a href="https://github.com/mordamax/clipsa.dev/blob/master/CHANGELOG.md">Changelog</a></li>
+          <li><a href="https://github.com/sponsors/mordamax">Sponsor</a></li>
+        </ul>
+      </nav>
+      <nav aria-labelledby="footer-legal">
+        <h2 id="footer-legal">Legal</h2>
+        <ul>
+          <li><a href="privacy">Privacy policy</a></li>
+          <li><a href="https://github.com/mordamax/clipsa.dev/blob/master/LICENSE">MIT license</a></li>
+        </ul>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,259 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Design tokens. Colours are RGB channels so Tailwind can apply opacity
+ * (`bg-accent/15`); see tailwind.config.js for the colour names.
+ */
+@layer base {
+  :root {
+    --c-canvas: 245 245 247;
+    --c-sidebar: 236 236 241;
+    --c-surface: 255 255 255;
+    --c-elevated: 255 255 255;
+    --c-field: 255 255 255;
+    --c-hover: 240 240 245;
+    --c-line: 226 226 232;
+    --c-line-strong: 208 208 216;
+    --c-fg: 22 23 29;
+    --c-fg-2: 60 63 74;
+    --c-muted: 104 108 121;
+    --c-subtle: 150 153 166;
+    --c-accent: 79 70 229;
+    --c-accent-text: 67 56 202;
+    --c-cyan: 8 145 178;
+    --c-success: 22 163 74;
+    --c-danger: 220 38 38;
+    --c-warning: 180 83 9;
+    --kbd-top: #ffffff;
+    --kbd-bottom: #f1f1f5;
+    --kbd-border: 208 208 216;
+    color-scheme: light;
+  }
+
+  :root.dark {
+    --c-canvas: 11 12 17;
+    --c-sidebar: 8 9 13;
+    --c-surface: 17 19 27;
+    --c-elevated: 23 26 36;
+    --c-field: 13 15 21;
+    --c-hover: 28 31 42;
+    --c-line: 34 37 48;
+    --c-line-strong: 50 54 68;
+    --c-fg: 244 246 251;
+    --c-fg-2: 182 188 200;
+    --c-muted: 141 148 163;
+    --c-subtle: 98 105 121;
+    --c-accent: 90 84 238;
+    --c-accent-text: 169 178 255;
+    --c-cyan: 34 211 238;
+    --c-success: 74 222 128;
+    --c-danger: 248 113 113;
+    --c-warning: 251 191 36;
+    --kbd-top: #1f2333;
+    --kbd-bottom: #161925;
+    --kbd-border: 64 69 88;
+    color-scheme: dark;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-sm text-fg antialiased;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    @apply bg-accent/25;
+  }
+
+  :focus-visible {
+    outline: none;
+  }
+
+  /* Thin, theme-aware scrollbars. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--c-fg) / 0.18) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: rgb(var(--c-fg) / 0.18) padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--c-fg) / 0.3) padding-box;
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  code,
+  kbd,
+  pre {
+    @apply font-mono;
+  }
+}
+
+@layer components {
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-1 focus-visible:ring-offset-canvas;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply focus-ring inline-flex h-8 shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-transparent px-3 text-sm font-medium transition-[background-color,border-color,color,filter] duration-150 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-sm {
+    @apply h-7 gap-1 rounded-md px-2.5 text-xs;
+  }
+
+  .btn-lg {
+    @apply h-10 rounded-xl px-5 text-base;
+  }
+
+  .btn-primary {
+    @apply btn text-white hover:brightness-110;
+    background-image: linear-gradient(180deg, #5a54ee, #4338ca);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.18),
+      0 6px 16px -8px rgb(79 70 229 / 0.8);
+  }
+
+  .btn-secondary {
+    @apply btn border-line-strong bg-surface text-fg shadow-sm hover:bg-hover dark:bg-elevated dark:hover:bg-hover;
+  }
+
+  .btn-ghost {
+    @apply btn text-fg-2 hover:bg-fg/[0.06] hover:text-fg;
+  }
+
+  .btn-danger {
+    @apply btn bg-danger text-white hover:brightness-110 dark:bg-red-600;
+  }
+
+  .btn-danger-ghost {
+    @apply btn text-danger hover:bg-danger/10;
+  }
+
+  .icon-btn {
+    @apply focus-ring inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-fg/[0.07] hover:text-fg disabled:pointer-events-none disabled:opacity-40;
+  }
+
+  .icon-btn-sm {
+    @apply icon-btn h-7 w-7 rounded-md;
+  }
+
+  /* Form controls */
+  .input {
+    @apply block h-8 w-full rounded-lg border border-line-strong bg-field px-2.5 py-0 text-sm text-fg shadow-sm transition-colors placeholder:text-subtle hover:border-subtle/70 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:cursor-not-allowed disabled:opacity-50 dark:shadow-none;
+  }
+
+  textarea.input {
+    @apply h-auto py-2 leading-5;
+  }
+
+  select.input {
+    @apply pr-8;
+    background-position: right 0.4rem center;
+  }
+
+  .input-invalid {
+    @apply border-danger focus:border-danger focus:ring-danger/25;
+  }
+
+  .radio {
+    @apply h-4 w-4 border-line-strong bg-field text-accent focus:ring-2 focus:ring-accent/40 focus:ring-offset-0;
+  }
+
+  .checkbox {
+    @apply h-4 w-4 rounded border-line-strong bg-field text-accent focus:ring-2 focus:ring-accent/40 focus:ring-offset-0 disabled:opacity-50;
+  }
+
+  /* Surfaces */
+  .card {
+    @apply rounded-xl border border-line bg-surface shadow-sm dark:shadow-none;
+  }
+
+  .panel {
+    @apply rounded-2xl border border-line bg-elevated shadow-pop;
+  }
+
+  .eyebrow {
+    @apply font-mono text-2xs font-semibold uppercase tracking-[0.14em] text-accent-text;
+  }
+
+  .group-label {
+    @apply select-none text-2xs font-semibold uppercase tracking-[0.08em] text-subtle;
+  }
+
+  /* Keycap */
+  .kbd {
+    @apply inline-flex h-[1.35rem] min-w-[1.35rem] items-center justify-center whitespace-nowrap rounded-md px-1 font-sans text-2xs font-medium leading-none text-fg-2;
+    border: 1px solid rgb(var(--kbd-border));
+    border-bottom-width: 2px;
+    background: linear-gradient(180deg, var(--kbd-top), var(--kbd-bottom));
+  }
+
+  .kbd-sm {
+    @apply h-[1.1rem] min-w-[1.1rem] rounded px-0.5 text-[10px];
+    border-bottom-width: 1px;
+  }
+
+  /* Chips & badges */
+  .chip {
+    @apply focus-ring inline-flex h-7 shrink-0 select-none items-center gap-1 whitespace-nowrap rounded-full border border-line px-2.5 text-xs font-medium text-fg-2 transition-colors hover:border-line-strong hover:text-fg;
+  }
+
+  .chip[aria-pressed='true'],
+  .chip[aria-checked='true'] {
+    @apply border-accent/40 bg-accent/10 text-accent-text dark:border-accent/50 dark:bg-accent/20;
+  }
+
+  .badge {
+    @apply inline-flex h-5 items-center gap-1 whitespace-nowrap rounded-md bg-fg/[0.06] px-1.5 text-2xs font-medium text-fg-2;
+  }
+
+  .badge-accent {
+    @apply badge bg-accent/10 text-accent-text dark:bg-accent/20;
+  }
+
+  .badge-success {
+    @apply badge bg-success/10 text-success;
+  }
+
+  .badge-warning {
+    @apply badge bg-warning/10 text-warning;
+  }
+
+  /* Notices */
+  .notice {
+    @apply flex items-start gap-2.5 rounded-xl border px-3 py-2.5 text-sm;
+  }
+
+  .notice-danger {
+    @apply notice border-danger/30 bg-danger/[0.08] text-fg-2;
+  }
+
+  .field-error {
+    @apply mt-1 text-xs text-danger;
+  }
+}
+
+@layer utilities {
+  /* Clips decorative glows without becoming a scroll container (focus/scrollIntoView can't shift it). */
+  .clip-overflow {
+    overflow: hidden;
+    overflow: clip;
+  }
+}

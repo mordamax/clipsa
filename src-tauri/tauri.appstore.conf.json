@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "build": {
+    "features": ["app-store"]
+  },
+  "bundle": {
+    "category": "Utility",
+    "createUpdaterArtifacts": false,
+    "macOS": {
+      "entitlements": "./appstore/Entitlements.plist",
+      "infoPlist": "./appstore/Info.plist",
+      "minimumSystemVersion": "13.0",
+      "files": {
+        "embedded.provisionprofile": "./appstore/embedded.provisionprofile"
+      }
+    }
+  },
+  "plugins": {
+    "updater": null
+  }
+}

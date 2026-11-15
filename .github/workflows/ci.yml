@@ -1,0 +1,97 @@
+name: CI
+
+# The website (site/) and docs live in this repo too; changes that only touch
+# them don't need the app checks.
+on:
+  push:
+    branches: [master]
+    paths-ignore: ['site/**', 'docs/**', '**/*.md', '.vercelignore']
+  pull_request:
+    branches: [master]
+    paths-ignore: ['site/**', 'docs/**', '**/*.md', '.vercelignore']
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  check:
+    name: Check (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo registry and build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install Linux Tauri system dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libxdo-dev \
+            libssl-dev \
+            libdbus-1-dev \
+            libgtk-3-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Svelte check
+        run: pnpm check
+
+      # tauri::generate_context!() embeds frontendDist (../build), so the
+      # directory must exist before cargo clippy/test on a clean checkout.
+      - name: Build frontend
+        run: pnpm build
+
+      - name: Cargo fmt
+        working-directory: src-tauri
+        run: cargo fmt --all -- --check
+
+      # Three configurations: plain, direct download (self-update), and the
+      # Mac App Store edition (macOS only).
+      - name: Cargo clippy
+        working-directory: src-tauri
+        shell: bash
+        run: |
+          cargo clippy --all-targets -- -D warnings
+          cargo clippy --all-targets --features self-update -- -D warnings
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            cargo clippy --all-targets --features app-store -- -D warnings
+          fi
+
+      - name: Cargo test
+        working-directory: src-tauri
+        run: cargo test --all-targets --features self-update
