@@ -6,6 +6,12 @@ Clipsa records what you copy, encrypts every item on disk, and lets you find and
 
 Website: **[clipsa.dev](https://clipsa.dev)** · How it compares with Maccy, Paste, Raycast and others: **[clipsa.dev/compare](https://clipsa.dev/compare)**
 
+## Install
+
+- **macOS** (Apple Silicon and Intel, signed and notarized): download the `.dmg` from [Releases](https://github.com/mordamax/clipsa/releases/latest), or `brew install --cask mordamax/tap/clipsa`.
+- **Windows:** the `.msi` or `-setup.exe` from [Releases](https://github.com/mordamax/clipsa/releases/latest). The installers are not code-signed yet, so SmartScreen may warn.
+- **Linux:** the `.AppImage`, `.deb` or `.rpm` from [Releases](https://github.com/mordamax/clipsa/releases/latest). Needs a Secret Service provider (GNOME Keyring, KWallet) to store the key.
+
 ## Features
 
 - **Captures text, rich text, images and file lists.** Rich text keeps both the HTML and its plain-text alternative; images are stored as PNG; file copies are stored as their path list. Re-copying an item puts it back on the clipboard in its native format.
@@ -19,7 +25,7 @@ Website: **[clipsa.dev](https://clipsa.dev)** · How it compares with Maccy, Pas
 - **Skips password-manager copies** that are marked concealed or transient (macOS and Windows).
 - **Per-app exclusions:** never record copies made while a given app is in front (macOS bundle id, e.g. `com.agilebits.onepassword7`; Windows exe name, e.g. `keepass.exe`).
 - **Retention limits:** maximum item count and automatic deletion after N days. Both are enforced after every capture and once an hour.
-- **Tray icon** with Open, Pause/Resume monitoring, Check for Updates… (direct downloads) and Quit. Closing the window hides Clipsa to the tray.
+- **Tray icon** with Open, Quick picker, Pause/Resume monitoring, Check for Updates… (direct downloads) and Quit. Closing the window hides Clipsa to the tray.
 - Single instance, optional launch at login, light/dark/system theme, compact mode.
 - **Signed auto-updates** from GitHub Releases (direct downloads and Homebrew), only if you opt in on the first-run screen or in Settings. A "Software Update" window shows the release notes and offers Install Update, Skip This Version and Remind Me Later; optionally, updates install automatically and take effect at the next launch.
 
@@ -72,132 +78,27 @@ On Linux, Clipsa cannot tell which app owns a copy and cannot see password-manag
 
 ## Security model
 
-What is actually implemented:
+- Each item's content is encrypted with AES-256-GCM under a random 256-bit master key kept in the OS keychain. If keychain access fails, Clipsa refuses to start rather than create a new key and orphan your history.
+- Duplicates are detected with a keyed HMAC-SHA256, so the database holds no plain hash of your content. Deleted rows are overwritten (`secure_delete`).
+- **Not encrypted:** metadata such as content type, size, timestamps and the pinned flag, and settings.
+- History is stored in `<data dir>/clipsa/clipboard.db` ([locations per OS](./docs/architecture.md#storage-layout)).
 
-- **Content encryption.** Each clipboard item's content (text, HTML, image bytes, file paths) is encrypted with AES-256-GCM using a fresh random 96-bit nonce.
-- **Master key.** A random 256-bit key is generated on first run and stored in the OS keychain. If keychain access is denied or fails, Clipsa shows an error and refuses to start. It never silently creates a new key, because a new key would make existing history unreadable.
-- **Deduplication without plaintext hashes.** Duplicates are detected with HMAC-SHA256. Its key is derived from the master key with HKDF, so the database holds no plain hash of your content.
-- **Deletion.** SQLite runs with `secure_delete=ON`, so deleted rows are overwritten in the database file.
-- **Not encrypted:** metadata such as content type, size, creation and last-used timestamps, and settings. The database file is plain SQLite (no SQLCipher). Only item contents are ciphertext.
-- **Data location:** `<data dir>/clipsa/clipboard.db`. The data dir is `~/Library/Application Support` on macOS, `%APPDATA%` on Windows and `$XDG_DATA_HOME` / `~/.local/share` on Linux.
-- **Network:** none by default. The first-run screen asks whether Clipsa may check GitHub Releases for updates at startup and once a day (changeable in Settings). Updates are verified against the minisign public key built into the app.
-
-Limits: anyone who can run code as your user while you are logged in can ask the keychain for the key (subject to OS prompts) or read the clipboard directly. Clipsa protects history at rest, for example a copied or backed-up database file. It is not a sandbox against local malware.
-
-See [docs/security.md](./docs/security.md) for details.
+Clipsa protects history at rest, for example a copied or backed-up database file. It is not a sandbox against malware running as your user, which can read the clipboard directly. See [docs/security.md](./docs/security.md) for the full model and its limits.
 
 ## Development
 
-### Prerequisites
-
-- Rust stable (`rustup`)
-- Node.js 22 and pnpm 9
-- Tauri 2 system dependencies for your OS ([guide](https://v2.tauri.app/start/prerequisites/)). On Debian/Ubuntu:
-  ```bash
-  sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev \
-    patchelf libxdo-dev libssl-dev libdbus-1-dev
-  ```
-
-### Run
+Install Rust stable, Node.js 22, pnpm 9 and the Tauri 2 system dependencies ([details](./docs/contributing.md#setup)), then:
 
 ```bash
 pnpm install
-pnpm tauri dev
+pnpm tauri dev      # development build: separate data directory and key, no keychain prompts
+pnpm tauri build    # installers in src-tauri/target/release/bundle/
+pnpm install:mac    # macOS: build a release Clipsa.app, sign it and install it into /Applications
 ```
 
-Debug builds keep their data in a separate directory, `<data dir>/clipsa-dev/`, and use a file-based development key instead of the keychain. Rebuilding during development therefore never triggers keychain prompts and never touches your real history.
-
-### Checks
-
-```bash
-pnpm check                      # Svelte / TypeScript
-pnpm build                      # builds the SPA into build/ (needed before cargo commands on a clean checkout)
-cd src-tauri
-cargo fmt --all -- --check
-cargo clippy --all-targets -- -D warnings
-cargo test                      # uses injected keys; does not touch the OS keychain
-```
-
-### Build
-
-```bash
-pnpm tauri build
-```
-
-Installers are written to `src-tauri/target/release/bundle/`.
-
-To also produce signed updater artifacts (`*.app.tar.gz`, `*.sig`, …), build with the release config overlay and the updater signing key:
-
-```bash
-export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/clipsa-updater.key)"
-export TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""   # if the key has a password
-pnpm tauri build --config src-tauri/tauri.release.conf.json
-```
-
-To build a release `Clipsa.app` and install it into `/Applications` on macOS:
-
-```bash
-scripts/create-local-signing-identity.sh   # once: self-signed "Clipsa Local Signing" in your login keychain
-pnpm install:mac                           # build, sign, install into /Applications and launch
-```
-
-The installed app is a release build: it uses the real data directory and the keychain-stored key. `install:mac` signs with the local identity when it exists (or `$CLIPSA_SIGNING_IDENTITY`), so macOS sees each rebuild as the same app and keychain "Always Allow" and Accessibility access are kept. Without it the build is ad-hoc signed, and macOS asks for keychain access and Accessibility again after every install.
-
-## Releasing
-
-1. Add the release notes to [`CHANGELOG.md`](./CHANGELOG.md) under `## [X.Y.Z] - YYYY-MM-DD` (Keep a Changelog style; `## [X.Y.Z] - Unreleased` while in progress). Write for users: this section becomes the GitHub release text and the "Release Notes" in Clipsa's update window. The release fails before building if the section for the version is missing or empty.
-2. Bump `version` in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `package.json`, then commit.
-3. Tag and push: `git tag v0.2.0 && git push origin v0.2.0`. The tag must match the version (`v` + version).
-4. The [Release workflow](./.github/workflows/release.yml) builds macOS (arm64 and x64), Linux and Windows, uploads the installers, updater bundles and `latest.json` (with the changelog section as `notes`) to a draft release, and publishes it once every build has succeeded. Installed apps then pick up the update from `https://github.com/mordamax/clipsa/releases/latest/download/latest.json`.
-
-You can also start the workflow by hand from the Actions tab (`workflow_dispatch`). It uses the version in `tauri.conf.json`. See [docs/deployment.md](./docs/deployment.md#release-notes) for the release notes format.
-
-### Required GitHub secrets
-
-| Secret | Required | Purpose |
-|---|---|---|
-| `TAURI_SIGNING_PRIVATE_KEY` | **yes** | Contents of `~/.tauri/clipsa-updater.key` on the maintainer machine. Signs the updater artifacts. Without it the release build fails. |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | if the key has one | Password for the updater key |
-| `APPLE_CERTIFICATE` | yes | Single-line base64 of the exported Developer ID Application `.p12` (`openssl base64 -A -in cert.p12`) |
-| `APPLE_CERTIFICATE_PASSWORD` | yes | Password of the `.p12` |
-| `APPLE_SIGNING_IDENTITY` | optional | e.g. `Developer ID Application: Name (TEAMID)`. Taken from the certificate if omitted. |
-| `APPLE_ID` | yes | Apple ID email (notarization) |
-| `APPLE_PASSWORD` | yes | App-specific password for that Apple ID |
-| `APPLE_TEAM_ID` | yes | Apple Developer Team ID |
-| `HOMEBREW_TAP_TOKEN` | optional | Fine-grained token with contents:write on `mordamax/homebrew-tap`. After publishing, the workflow renders the Homebrew cask from `packaging/homebrew/clipsa.rb.in`, attaches it to the release and, with this token, pushes it to the tap (`brew install --cask mordamax/tap/clipsa`). |
-
-`GITHUB_TOKEN` is provided automatically. The release fails if any required Apple secret is missing: unsigned or un-notarized Mac builds trigger Gatekeeper warnings and, because each update would look like a different app, repeated keychain prompts and lost Accessibility access for users. Windows builds are not code-signed yet (SmartScreen warns until the app has reputation or is signed).
-
-**Keep `~/.tauri/clipsa-updater.key` backed up.** Its public half is built into every installed copy. If the private key is lost, existing installs can never auto-update again.
-
-## Project structure
-
-```
-clipsa/
-├── src/                          # SvelteKit SPA (adapter-static, ssr = false)
-│   └── routes/
-│       ├── +page.svelte          # History window (main)
-│       ├── settings/             # Settings page
-│       ├── picker/               # Quick picker window
-│       └── updater/              # "Software Update" window (direct downloads)
-├── src-tauri/
-│   ├── src/
-│   │   ├── lib.rs                # App setup, commands, tray, windows, hotkey
-│   │   ├── clipboard.rs          # Clipboard monitoring, capture, write-back
-│   │   ├── crypto.rs             # AES-256-GCM, HKDF/HMAC, keychain master key
-│   │   ├── storage.rs            # SQLite history store, retention
-│   │   ├── platform.rs           # Change counters, sensitive-copy and frontmost-app detection, paste
-│   │   ├── settings.rs           # Settings model, validation, persistence
-│   │   ├── error.rs              # Error type
-│   │   ├── updater.rs            # Update window plumbing (self-update feature)
-│   │   └── main.rs
-│   ├── capabilities/             # Tauri permission capabilities
-│   ├── tauri.conf.json
-│   └── tauri.release.conf.json   # Release overlay: enables updater artifacts
-├── docs/
-├── CHANGELOG.md                  # Release notes (published with each release)
-└── .github/workflows/            # ci.yml, release.yml
-```
+- Checks, tests and code guidelines: [docs/contributing.md](./docs/contributing.md)
+- Local signing for `install:mac` and updater artifacts: [docs/deployment.md](./docs/deployment.md#local-builds)
+- Cutting a release (changelog, version bump, tag, workflow secrets): [docs/deployment.md](./docs/deployment.md#cutting-a-release)
 
 ## Documentation
 

@@ -1,20 +1,22 @@
 # Architecture
 
-Clipsa is a single Tauri 2 process. The Rust backend does clipboard monitoring, encryption, storage and OS integration. A SvelteKit SPA (adapter-static, `ssr = false`) renders two webview windows. Nothing runs in a separate process or service.
+Clipsa is a single Tauri 2 app. The Rust backend does clipboard monitoring, encryption, storage and OS integration. A SvelteKit SPA (adapter-static, `ssr = false`) renders the webview windows: `main` (`/`, `/settings`), `picker` (`/picker`) and, in direct-download builds, `updater` (`/updater`). There is no separate daemon or service.
 
 ```
 ┌──────────────────────── Tauri process ────────────────────────┐
 │  Webview "main"  (/ , /settings)    Webview "picker" (/picker)│
+│  Webview "updater" (/updater, direct-download builds only)    │
 │              │  invoke / events (snake_case JSON)  │          │
 │  ┌───────────┴─────────────────────────────────────┴───────┐  │
 │  │ lib.rs: commands, tray, windows, global hotkey, plugins │  │
 │  ├──────────────┬──────────────┬──────────────┬────────────┤  │
 │  │ clipboard.rs │  crypto.rs   │  storage.rs  │ settings.rs│  │
 │  │ monitor loop │ AES-GCM, HMAC│ SQLite       │ validate,  │  │
-│  │ capture/write│ keychain key │ retention    │ persist    │  │
+│  │ capture/write│ keychain key │              │ persist    │  │
+│  │ retention    │              │              │            │  │
 │  ├──────────────┴──────────────┴──────────────┴────────────┤  │
 │  │ platform.rs: change counter, sensitive-copy markers,    │  │
-│  │ frontmost app, accessibility check, paste simulation    │  │
+│  │ frontmost app, accessibility, OS auth, paste simulation │  │
 │  └─────────────────────────────────────────────────────────┘  │
 └───────────────────────────────────────────────────────────────┘
         arboard · keyring · rusqlite (bundled) · enigo
@@ -24,22 +26,23 @@ Clipsa is a single Tauri 2 process. The Rust backend does clipboard monitoring, 
 
 | Module | Responsibility |
 |---|---|
-| `lib.rs` | Builds the Tauri app: plugins (global-shortcut, autostart, single-instance, updater, process, dialog), tray menu (Open, Pause/Resume monitoring, Quit), close-to-tray, picker window show/hide, all `#[tauri::command]`s, and the hourly retention task. |
-| `clipboard.rs` | Monitor loop. Reads the clipboard via `arboard` when the platform change signal fires, classifies the content (text, HTML + plain alt, PNG image, file list), applies the sensitive/excluded-app filters, and hands items to storage. Also writes stored items back to the clipboard in their native format. |
+| `lib.rs` | Builds the Tauri app: plugins (single-instance, dialog, process, opener, global-shortcut; updater with the `self-update` feature; autostart except with `app-store`), tray menu (Open Clipsa, Quick picker, Pause/Resume monitoring, Check for Updates…, Quit), close-to-tray, picker window show/hide, and all `#[tauri::command]`s. |
+| `clipboard.rs` | Monitor loop. Reads the clipboard via `arboard` when the platform change signal fires, classifies the content (text, HTML + plain alt, PNG image, file list), applies the sensitive/excluded-app filters, and hands items to storage. Writes stored items back to the clipboard in their native format, and runs retention after each capture and on an hourly background thread. |
 | `crypto.rs` | Loads or creates the 256-bit master key in the OS keychain (`keyring` 3), encrypts and decrypts with AES-256-GCM using random 96-bit nonces, and derives the HMAC-SHA256 dedup key with HKDF. Debug builds use a file-based dev key. |
-| `storage.rs` | SQLite (`rusqlite`, bundled) with `secure_delete=ON`: insert/dedup/bump, paging and search, statistics, deletion, and pruning by `max_items` and `auto_cleanup_days`. |
-| `platform.rs` | OS specifics: NSPasteboard `changeCount` / `GetClipboardSequenceNumber` / polling + hash on Linux; password-manager markers; frontmost-app id; macOS Accessibility status; Cmd/Ctrl+V simulation. |
+| `storage.rs` | SQLite (`rusqlite`, bundled) with `secure_delete=ON`: schema migrations, insert/dedup/bump, paging and search, pins and titles, statistics, deletion, and pruning by `max_items` and `auto_cleanup_days`. |
+| `platform.rs` | OS specifics: NSPasteboard `changeCount` / `GetClipboardSequenceNumber` / polling + hash on Linux; password-manager markers; frontmost-app id; macOS Accessibility status; Touch ID / Windows Hello authentication; Cmd/Ctrl+V simulation. |
+| `lock.rs` | App lock state: locks after the configured time in the background, unlocks through `platform.rs` authentication, and rejects history commands while locked. |
 | `settings.rs` | `AppSettings` model, defaults, validation, persistence, and applying changes (hotkey re-registration, autostart, monitoring toggle). |
 | `error.rs` | Error type. Commands reject with a plain string. |
 | `updater.rs` | Direct-download builds only (`self-update` feature): creates the hidden "Software Update" window, shows it (`show_updater`, tray "Check for Updates…") and saves its choices (`update_updater_settings`, allowed while locked). |
 
 ## Data flow
 
-1. **Capture.** The platform change signal fires and the frontmost app is checked against `excluded_apps`. If `ignore_sensitive` is on, concealed/transient copies are skipped. Otherwise the content is read and its HMAC computed. A duplicate only bumps `last_used_at`. New content is encrypted and inserted, retention runs, and `clipboard://changed` is emitted.
-2. **Browse.** The UI calls `get_history`. Rows are decrypted to build previews and image thumbnails. Search is a case-insensitive substring match over the decrypted text.
+1. **Capture.** The platform change signal fires. If `ignore_sensitive` is on, concealed/transient copies are skipped, and copies made while an app in `excluded_apps` is frontmost are skipped. Otherwise the content is read and its HMAC computed. A duplicate only bumps `last_used_at`. New content is encrypted and inserted, retention runs, and `clipboard://changed` is emitted.
+2. **Browse.** The UI calls `get_history`. Each row's encrypted preview (up to 300 characters of text, or an image thumbnail) and title are decrypted; full content is not loaded. Search is a case-insensitive substring match over the decrypted text and titles; images match by title only.
 3. **Re-use.** `copy_item` writes the item to the clipboard and bumps it. `paste_item` also hides the picker and simulates Cmd/Ctrl+V into the previously focused app.
 
-Our own write-backs are not re-captured as new items; they dedup to the existing row.
+Clipsa's own write-backs are not re-captured as new items; they dedup to the existing row.
 
 ## Frontend (`src`)
 
@@ -55,4 +58,26 @@ The command/event contract (names, args, payloads) is documented in the backend 
 - Release: `<data dir>/clipsa/clipboard.db`.
 - Debug: `<data dir>/clipsa-dev/`, with a file-based dev key instead of the keychain.
 
-Each item row stores the ciphertext and nonce plus plaintext metadata: id, content type, size, created/last-used timestamps, and the HMAC dedup tag.
+`<data dir>` is `~/Library/Application Support` on macOS, `%APPDATA%` on Windows and `$XDG_DATA_HOME` (or `~/.local/share`) on Linux. The Mac App Store edition keeps it inside its sandbox container (`~/Library/Containers/com.clipsa.app/Data/Library/Application Support`).
+
+Each item row stores the encrypted content, preview and optional title (each with its nonce) plus plaintext metadata: id, content type, size, created/last-used timestamps, the pinned flag, and the HMAC dedup tag.
+
+## Repository layout
+
+```
+clipsa/
+├── src/                          # SvelteKit SPA (see Frontend above)
+├── src-tauri/
+│   ├── src/                      # Rust backend (see Backend modules above)
+│   ├── capabilities/             # Tauri permission capabilities
+│   ├── appstore/                 # Mac App Store Info.plist and entitlements template
+│   ├── tauri.conf.json
+│   ├── tauri.release.conf.json   # Release overlay: enables updater artifacts
+│   └── tauri.appstore.conf.json  # Mac App Store overlay
+├── scripts/                      # Local macOS signing identity and install script
+├── packaging/homebrew/           # Homebrew cask template
+├── site/                         # clipsa.dev static website
+├── docs/
+├── CHANGELOG.md                  # Release notes (published with each release)
+└── .github/workflows/            # ci.yml, release.yml, appstore.yml
+```

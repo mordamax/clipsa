@@ -4,10 +4,10 @@ All notable changes to Clipsa are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and Clipsa uses
 [Semantic Versioning](https://semver.org/).
 
-Each release has a section headed `## [X.Y.Z] - YYYY-MM-DD` (or
-`## [X.Y.Z] - Unreleased` until it ships). The release workflow publishes the
-section for the version being released as the GitHub release notes and as the
-"Release Notes" shown in Clipsa's update window, so write it for users.
+Each release has a section headed `## [X.Y.Z] - YYYY-MM-DD` (`Unreleased` in
+place of the date until it ships). That section is published as the GitHub
+release notes and in Clipsa's update window, so write it for users; see
+[Release notes](./docs/deployment.md#release-notes) for the format.
 
 ## [0.1.0] - 2026-11-15
 

@@ -542,9 +542,7 @@ fn apply_settings_patch(
     Ok(new)
 }
 
-// ============================================================================
 // Tauri commands. `async` runs them off the main thread.
-// ============================================================================
 
 type CommandResult<T> = Result<T, String>;
 

@@ -12,14 +12,14 @@ This document describes what Clipsa actually does to protect clipboard history a
 
 | Aspect | Implementation |
 |---|---|
-| Cipher | AES-256-GCM (`aes-gcm` crate), one encryption per item |
+| Cipher | AES-256-GCM (`aes-gcm` crate); each item's content, preview and title are encrypted separately |
 | Nonce | Random 96-bit nonce per encryption, stored with the ciphertext |
-| What is encrypted | Item content: text, HTML and its plain-text alternative, PNG bytes, file path lists |
-| What is **not** encrypted | Content type, size, created/last-used timestamps, the HMAC dedup tag, settings. The database itself is ordinary SQLite (no SQLCipher). |
+| What is encrypted | Item content (text, HTML and its plain-text alternative, PNG bytes, file path lists), the list preview (text excerpt or image thumbnail) and the optional item title |
+| What is **not** encrypted | Content type, size, created/last-used timestamps, the pinned flag, the HMAC dedup tag, settings. The database itself is ordinary SQLite (no SQLCipher). |
 | Master key | 256 random bits, created on first run, stored in the OS keychain via `keyring` 3: macOS Keychain, Windows Credential Manager, Linux Secret Service |
 | Dedup | HMAC-SHA256 over the content, keyed with a sub-key derived from the master key via HKDF. No plain SHA hash of content is stored, so known content cannot be confirmed by hashing it. |
 | Key material in memory | Key buffers use `zeroize` and are wiped on drop |
-| Search | There is no plaintext index. A search decrypts matching-type items one at a time in memory, compares, and wipes each decrypted copy (`Zeroizing` / `ZeroizeOnDrop`). Image content is never loaded for search; images match by title only. Results return only the encrypted-at-rest previews' decrypted text (≤300 characters), as the list always does. |
+| Search | There is no plaintext index. A search decrypts matching-type items one at a time in memory, compares, and wipes each decrypted copy (`Zeroizing` / `ZeroizeOnDrop`). Image content is never loaded for search; images match by title only. Results carry only the decrypted preview (≤300 characters) and title, as the list always does. |
 
 Items that fail to decrypt (for example, after a key change) are still listed with `readable: false` and an empty preview. They are never silently dropped.
 
@@ -52,8 +52,8 @@ The only network traffic is the update check (`check_for_updates`), which is off
 
 ## OS permissions
 
-- macOS **Accessibility** is needed only for `paste_item` (simulating Cmd+V into another app). Capturing does not need it.
-- Global hotkey, autostart and tray use the standard Tauri plugins.
+- macOS **Accessibility** is needed only for `paste_item` (simulating Cmd+V into another app). Capturing does not need it. The Mac App Store edition does not paste and never asks for it.
+- The global hotkey and launch at login use the standard Tauri plugins; the Mac App Store edition uses macOS Login Items (`SMAppService`) instead of the autostart plugin.
 
 ## Reporting vulnerabilities
 

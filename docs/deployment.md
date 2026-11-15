@@ -2,12 +2,7 @@
 
 ## Local builds
 
-Prerequisites: Rust stable, Node.js 22, pnpm 9 and the [Tauri 2 system dependencies](https://v2.tauri.app/start/prerequisites/). On Debian/Ubuntu:
-
-```bash
-sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev \
-  patchelf libxdo-dev libssl-dev libdbus-1-dev
-```
+Install the prerequisites from [Contributing → Setup](./contributing.md#setup) first.
 
 ```bash
 pnpm install
@@ -23,6 +18,15 @@ pnpm tauri build --target aarch64-apple-darwin   # explicit target (rustup targe
 | Windows | `.msi` (WiX), `-setup.exe` (NSIS) |
 | Linux | `.AppImage`, `.deb`, `.rpm` |
 
+### Installing into /Applications (macOS)
+
+```bash
+scripts/create-local-signing-identity.sh   # once: self-signed "Clipsa Local Signing" in your login keychain
+pnpm install:mac                           # build, sign, install into /Applications and launch
+```
+
+The installed app is a release build: it uses the real data directory and the keychain-stored key. `install:mac` signs with `$CLIPSA_SIGNING_IDENTITY` if set, otherwise with the local identity when it exists, so macOS sees each rebuild as the same app and keychain "Always Allow" and Accessibility access are kept. Without either, the build is ad-hoc signed, and macOS asks for keychain access and Accessibility again after every install.
+
 ### Updater artifacts
 
 Updater bundles and signatures are produced only when the release overlay `src-tauri/tauri.release.conf.json` is used. It sets `bundle.createUpdaterArtifacts: true`. The updater signing key must also be in the environment; `.env` files are not read.
@@ -37,23 +41,24 @@ The public half of this key is `plugins.updater.pubkey` in `tauri.conf.json`. **
 
 ## CI (`.github/workflows/ci.yml`)
 
-Runs on pushes and PRs to `master` on Ubuntu, macOS and Windows: `pnpm check`, `pnpm build` (`tauri::generate_context!` needs `build/` to exist), `cargo fmt --check`, `cargo clippy -D warnings` (plain, `self-update` and, on macOS, `app-store`), `cargo test`. Tests use injected keys and never touch the OS keychain. Changes that only touch `site/`, `docs/` or Markdown files skip CI.
+Runs on pushes and PRs to `master` on Ubuntu, macOS and Windows: `pnpm check`, `pnpm build` (`tauri::generate_context!` needs `build/` to exist), `cargo fmt --check`, `cargo clippy -D warnings` (plain, `--features self-update` and, on macOS, `--features app-store`) and `cargo test --all-targets --features self-update`. Tests use injected keys and never touch the OS keychain. Changes that only touch `site/`, `docs/` or Markdown files skip CI.
 
 ## Release workflow (`.github/workflows/release.yml`)
 
-Triggered by pushing a `v*` tag, or manually with `workflow_dispatch`.
+Triggered by pushing a `v*` tag, or manually with `workflow_dispatch`. Either way the version comes from `tauri.conf.json`.
 
-1. **notes**: extracts the `CHANGELOG.md` section for the version in `tauri.conf.json` (see [Release notes](#release-notes)). The workflow stops here, before anything is built or uploaded, if the section is missing or empty.
+1. **notes**: extracts the `CHANGELOG.md` section for the version (see [Release notes](#release-notes)). The workflow stops here, before anything is built or uploaded, if the section is missing or empty.
 2. **build** (matrix):
    - macOS arm64: `macos-latest`, `--target aarch64-apple-darwin`
    - macOS x64: `macos-latest`, `--target x86_64-apple-darwin`
    - Linux: `ubuntu-22.04`
    - Windows: `windows-latest`
 
-   Each job runs `tauri-apps/tauri-action@v0` with `--config src-tauri/tauri.release.conf.json`. It uploads installers, updater bundles and `.sig` files to a **draft** release `v<version>`, where the version comes from `tauri.conf.json`, and merges each platform's entry into `latest.json`. The release notes are passed as `releaseBody`, which tauri-action uses both as the GitHub release text and as the `notes` field of `latest.json`.
+   Each job runs `tauri-apps/tauri-action@v0` with `--config src-tauri/tauri.release.conf.json`. It uploads installers, updater bundles and `.sig` files to a **draft** release `v<version>` and merges each platform's entry into `latest.json`. The release notes are passed as `releaseBody`, which tauri-action uses both as the GitHub release text and as the `notes` field of `latest.json`.
 
    On macOS, Tauri notarizes and staples the `.app` but only signs the DMG around it. The next step submits the DMG to Apple's notary service, staples the ticket and replaces the uploaded DMG, so `spctl -a -vvv -t install Clipsa_<version>_<arch>.dmg` reports `Notarized Developer ID`. The first notarizations for a new team can take an hour.
 3. **publish**: runs only if every build succeeded and makes the draft public (`gh release edit --draft=false --latest`). From that moment `https://github.com/mordamax/clipsa/releases/latest/download/latest.json` serves the new version to the in-app updater.
+4. **homebrew**: renders the cask from `packaging/homebrew/clipsa.rb.in` with the published DMGs' checksums, attaches `clipsa.rb` to the release and, if `HOMEBREW_TAP_TOKEN` is set, pushes it to `mordamax/homebrew-tap` (`brew install --cask mordamax/tap/clipsa`).
 
 If any build fails, the release stays a draft and no user receives the update. Fix the problem, delete the draft, and re-run.
 
@@ -67,21 +72,24 @@ Notes flow: `CHANGELOG.md` → **notes** job → tauri-action `releaseBody` → 
 
 ### Cutting a release
 
-1. Set the same version in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `package.json`, and make sure `CHANGELOG.md` has a non-empty section for it (dated). Commit to `master`.
-2. `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag must equal `v` + the version in `tauri.conf.json`.
-3. Wait for the workflow to finish, then check the published release notes and assets.
+1. Add a non-empty, dated section for the version to `CHANGELOG.md`.
+2. Set the same version in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `package.json`. Commit to `master`.
+3. `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag must equal `v` + the version in `tauri.conf.json`.
+4. Wait for the workflow to finish, then check the published release notes and assets.
 
 ### Secrets
 
 | Secret | Needed for |
 |---|---|
-| `TAURI_SIGNING_PRIVATE_KEY` | **Required.** Contents of `~/.tauri/clipsa-updater.key` from the maintainer machine. Without it, building with updater artifacts fails. |
+| `TAURI_SIGNING_PRIVATE_KEY` | **Required.** Contents of `~/.tauri/clipsa-updater.key`. Without it, building with updater artifacts fails. |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Only if the updater key is password-protected |
-| `APPLE_CERTIFICATE` | Required. macOS code signing: base64 of the Developer ID Application `.p12` (`openssl base64 -A -in cert.p12`) |
+| `APPLE_CERTIFICATE` | Required. macOS code signing: single-line base64 of the Developer ID Application `.p12` (`openssl base64 -A -in cert.p12`) |
 | `APPLE_CERTIFICATE_PASSWORD` | Required. Password of that `.p12` |
-| `APPLE_SIGNING_IDENTITY` | Optional; defaults to the identity in the certificate |
+| `APPLE_SIGNING_IDENTITY` | Optional, e.g. `Developer ID Application: Name (TEAMID)`; defaults to the identity in the certificate |
 | `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID` | Required. Notarization (Apple ID email, app-specific password, team id) |
-| `HOMEBREW_TAP_TOKEN` | Optional. Fine-grained token with contents:write on `mordamax/homebrew-tap`; the `homebrew` job pushes the rendered cask there. Without it the cask is only attached to the release. |
+| `HOMEBREW_TAP_TOKEN` | Optional. Fine-grained token with contents:write on `mordamax/homebrew-tap`. Without it the cask is only attached to the release. |
+
+`GITHUB_TOKEN` is provided automatically.
 
 macOS releases must be signed with a Developer ID and notarized; the workflow fails before building if any required Apple secret is missing. A stable signing identity is what lets users click "Always Allow" for keychain access and grant Accessibility once: macOS ties both to the code signature, so unsigned builds would re-prompt after every update. (The Tauri bundler treats an Apple variable set to an empty string as configured, so the workflow exports them only after this check.)
 
@@ -117,7 +125,7 @@ Everything else, including capture of text, rich text, images and file lists, en
 `src-tauri/appstore/Entitlements.plist.template` contains:
 
 - `com.apple.security.app-sandbox`: required for the App Store.
-- `com.apple.security.network.client`: required by WKWebView. Without it the sandboxed WebContent processes crash at launch and every window stays blank. This was observed locally (see below). Clipsa itself makes no network requests: the CSP only allows `ipc:`, and this edition has no updater.
+- `com.apple.security.network.client`: required by WKWebView. Without it the sandboxed WebContent processes crash at launch and every window stays blank (reproducible with the smoke test below). Clipsa itself makes no network requests: the CSP only allows `ipc:`, and this edition has no updater.
 - `com.apple.application-identifier` = `$(TEAM_ID).com.clipsa.app` and `com.apple.developer.team-identifier` = `$(TEAM_ID)`.
 
 The workflow replaces `$(TEAM_ID)` with the `APPLE_TEAM_ID` secret and writes `src-tauri/appstore/Entitlements.plist`. It also decodes the provisioning profile to `src-tauri/appstore/embedded.provisionprofile`. Both files are gitignored. To build a store bundle by hand, create both files the same way (`sed "s/\$(TEAM_ID)/ABCDE12345/g" Entitlements.plist.template > Entitlements.plist`).
@@ -149,7 +157,7 @@ pkill -f "target/debug/bundle/macos/Clipsa.app" || true
 rm -rf src-tauri/target/debug/bundle/macos/Clipsa.app
 ```
 
-Verified this way: the app and both webviews start, data is written to the container, and text, image and file-list copies are captured. Not covered by this test: the keychain (release builds only), `SMAppService` registration (needs a properly signed app), and the global hotkey and picker interaction.
+This checks that the app and its webviews start, data is written to the container, and text, image and file-list copies are captured. It does not cover the keychain (release builds only), `SMAppService` registration (needs a properly signed app), or the global hotkey and picker interaction.
 
 ### One-time setup
 
@@ -198,7 +206,7 @@ After processing, the build appears under TestFlight in App Store Connect. The m
 
 ### Export compliance
 
-**This is a legal declaration by the publisher. The owner must confirm it before the first submission.**
+**This is a legal declaration by the publisher.**
 
 `src-tauri/appstore/Info.plist` sets `ITSAppUsesNonExemptEncryption` to `false`, so App Store Connect does not ask the encryption questions for every build. The reasoning:
 
@@ -207,7 +215,7 @@ After processing, the build appears under TestFlight in App Store Connect. The m
 - Apple's documentation table lists, for "an industry standard algorithm, not provided within the Apple operating system", only a **French encryption declaration**, and only when the app is distributed on the App Store **in France**. A CCATS is required only for proprietary or non-standard algorithms ([Export compliance documentation for encryption](https://developer.apple.com/help/app-store-connect/reference/app-information/export-compliance-documentation-for-encryption), [Overview of export compliance](https://developer.apple.com/help/app-store-connect/manage-app-information/overview-of-export-compliance)).
 - On the US side, mass-market encryption items under EAR §740.17(b)(1) no longer need the annual self-classification report since the BIS rule of 29 March 2021 (86 FR 16482), and publicly available open-source encryption code using standard cryptography no longer needs the email notification ([Federal Register](https://www.govinfo.gov/content/pkg/FR-2021-03-29/pdf/2021-05481.pdf), [BIS: encryption items not subject to the EAR](https://www.bis.gov/learn-support/encryption-controls/encryption-items-not-subject-to-ear)).
 
-Consequences for the owner:
+Consequences:
 
 - **France:** either exclude France from the app's availability, or file the French encryption declaration (ANSSI), upload it in App Store Connect → App Information → App Encryption Documentation, then set `ITSAppUsesNonExemptEncryption` to `true` and add the `ITSEncryptionExportComplianceCode` that Apple issues.
 - If the encryption ever changes to a non-standard algorithm, or Clipsa starts sending encrypted data over the network (sync, for example), this decision has to be reviewed.
