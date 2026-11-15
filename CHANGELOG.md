@@ -9,6 +9,12 @@ place of the date until it ships). That section is published as the GitHub
 release notes and in Clipsa's update window, so write it for users; see
 [Release notes](./docs/deployment.md#release-notes) for the format.
 
+## [0.1.1] - 2026-11-15
+
+### Changed
+
+- Maintenance release with no changes to features. Releases are now built by a hardened pipeline: pinned build tools, signing keys available only to release builds, and published releases that can't be modified afterwards.
+
 ## [0.1.0] - 2026-11-15
 
 First public release.
