@@ -51,6 +51,8 @@ Triggered by pushing a `v*` tag, or manually with `workflow_dispatch`.
    - Windows: `windows-latest`
 
    Each job runs `tauri-apps/tauri-action@v0` with `--config src-tauri/tauri.release.conf.json`. It uploads installers, updater bundles and `.sig` files to a **draft** release `v<version>`, where the version comes from `tauri.conf.json`, and merges each platform's entry into `latest.json`. The release notes are passed as `releaseBody`, which tauri-action uses both as the GitHub release text and as the `notes` field of `latest.json`.
+
+   On macOS, Tauri notarizes and staples the `.app` but only signs the DMG around it. The next step submits the DMG to Apple's notary service, staples the ticket and replaces the uploaded DMG, so `spctl -a -vvv -t install Clipsa_<version>_<arch>.dmg` reports `Notarized Developer ID`. The first notarizations for a new team can take an hour.
 3. **publish**: runs only if every build succeeded and makes the draft public (`gh release edit --draft=false --latest`). From that moment `https://github.com/mordamax/clipsa/releases/latest/download/latest.json` serves the new version to the in-app updater.
 
 If any build fails, the release stays a draft and no user receives the update. Fix the problem, delete the draft, and re-run.
