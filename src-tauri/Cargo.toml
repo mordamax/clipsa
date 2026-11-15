@@ -43,7 +43,7 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 aes-gcm = { version = "0.10", features = ["zeroize"] }
 sha2 = "0.10"
 hmac = "0.12"
-hkdf = "0.12"
+hkdf = "0.13"
 zeroize = { version = "1", features = ["derive"] }
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
 
