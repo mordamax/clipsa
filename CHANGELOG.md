@@ -9,6 +9,12 @@ place of the date until it ships). That section is published as the GitHub
 release notes and in Clipsa's update window, so write it for users; see
 [Release notes](./docs/deployment.md#release-notes) for the format.
 
+## [0.1.2] - Unreleased
+
+### Fixed
+
+- macOS: with launch at login on, System Settings → Login Items and the "Background Items Added" notification now show Clipsa instead of the developer's name.
+
 ## [0.1.1] - 2026-11-15
 
 ### Changed

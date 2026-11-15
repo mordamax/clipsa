@@ -17,8 +17,6 @@ use std::time::{Duration, Instant};
 use tauri::menu::{IsMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager, WindowEvent, Wry};
-#[cfg(not(feature = "app-store"))]
-use tauri_plugin_autostart::{MacosLauncher, ManagerExt as _};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tracing::{error, info, warn};
@@ -110,13 +108,8 @@ pub fn run() {
     // by the App Store and must not contain an updater.
     #[cfg(feature = "self-update")]
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
-    // Launch at login: LaunchAgent plugin for direct builds; the App Store
-    // edition uses SMAppService instead (see `set_autostart`).
-    #[cfg(not(feature = "app-store"))]
-    let builder = builder.plugin(tauri_plugin_autostart::init(
-        MacosLauncher::LaunchAgent,
-        Some(vec![LAUNCHED_AT_LOGIN_ARG]),
-    ));
+    // Launch at login: see `set_autostart` (LaunchAgent/registry/XDG entry for
+    // direct builds, SMAppService for the App Store edition).
     let app = builder
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -278,6 +271,13 @@ fn initialize(app: &AppHandle) -> ClipsaResult<()> {
 
     if let Err(e) = register_hotkey(app, &initial.global_hotkey) {
         warn!("Global hotkey `{}` unavailable: {e}", initial.global_hotkey);
+    }
+    #[cfg(not(feature = "app-store"))]
+    match autostart_entry(app) {
+        Ok(entry) => {
+            app.manage(entry);
+        }
+        Err(e) => warn!("Launch at login unavailable: {e}"),
     }
     if let Err(e) = set_autostart(app, initial.launch_at_login) {
         warn!("Could not sync launch-at-login: {e}");
@@ -466,18 +466,27 @@ fn register_hotkey(app: &AppHandle, hotkey: &str) -> ClipsaResult<()> {
     Ok(())
 }
 
+/// The direct edition's login entry. Its name stays the product name that
+/// `tauri-plugin-autostart` used up to 0.1.1, so existing entries are found.
+#[cfg(not(feature = "app-store"))]
+fn autostart_entry(app: &AppHandle) -> ClipsaResult<platform::autostart::Autostart> {
+    #[cfg(target_os = "linux")]
+    let appimage = app.env().appimage.map(PathBuf::from);
+    #[cfg(not(target_os = "linux"))]
+    let appimage: Option<PathBuf> = None;
+    platform::autostart::Autostart::new(
+        &app.package_info().name,
+        &app.config().identifier,
+        LAUNCHED_AT_LOGIN_ARG,
+        appimage.as_deref(),
+    )
+}
+
 #[cfg(not(feature = "app-store"))]
 fn set_autostart(app: &AppHandle, enabled: bool) -> ClipsaResult<()> {
-    let autolaunch = app.autolaunch();
-    let platform_err = |e: tauri_plugin_autostart::Error| ClipsaError::Platform(e.to_string());
-    if autolaunch.is_enabled().map_err(platform_err)? != enabled {
-        if enabled {
-            autolaunch.enable().map_err(platform_err)?;
-        } else {
-            autolaunch.disable().map_err(platform_err)?;
-        }
-    }
-    Ok(())
+    app.try_state::<platform::autostart::Autostart>()
+        .ok_or_else(|| ClipsaError::Platform("Launch at login is unavailable".into()))?
+        .set(enabled)
 }
 
 #[cfg(feature = "app-store")]

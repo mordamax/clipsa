@@ -357,7 +357,7 @@ mod macos_auth {
 
 /// Launch at login for the App Store edition, via
 /// `SMAppService.mainAppService` (macOS 13+). The sandbox blocks the
-/// LaunchAgent/AppleScript approach of `tauri-plugin-autostart`.
+/// LaunchAgent that [`autostart`] writes.
 #[cfg(feature = "app-store")]
 pub mod login_item {
     use objc2_service_management::{SMAppService, SMAppServiceStatus};
@@ -405,6 +405,93 @@ pub mod login_item {
             })?;
         }
         Ok(())
+    }
+}
+
+/// Launch at login for direct-download builds (`auto-launch`): a LaunchAgent
+/// on macOS, a `Run` registry value on Windows, an XDG autostart entry on
+/// Linux. The entry passes `--launched-at-login` so a login start can stay in
+/// the tray, which an SMAppService login item can't do.
+#[cfg(not(feature = "app-store"))]
+pub mod autostart {
+    use std::path::Path;
+
+    use auto_launch::{AutoLaunch, AutoLaunchBuilder};
+
+    use crate::error::{ClipsaError, ClipsaResult};
+
+    fn platform_err(e: impl std::fmt::Display) -> ClipsaError {
+        ClipsaError::Platform(e.to_string())
+    }
+
+    pub struct Autostart {
+        entry: AutoLaunch,
+        bundle_id: String,
+        name: String,
+    }
+
+    impl Autostart {
+        /// `name` names the entry (`~/Library/LaunchAgents/<name>.plist`, the
+        /// registry value, the `.desktop` file) and must stay stable so
+        /// existing entries are found. `appimage` is the AppImage path when
+        /// running from one, which is what has to be launched.
+        pub fn new(
+            name: &str,
+            bundle_id: &str,
+            arg: &str,
+            appimage: Option<&Path>,
+        ) -> ClipsaResult<Self> {
+            let exe = std::env::current_exe().map_err(platform_err)?;
+            let path = match appimage {
+                Some(appimage) => appimage.to_path_buf(),
+                // macOS: the binary inside the .app, with symlinks resolved.
+                None if cfg!(target_os = "macos") => exe.canonicalize().map_err(platform_err)?,
+                None => exe,
+            };
+            let entry = AutoLaunchBuilder::new()
+                .set_app_name(name)
+                .set_app_path(&path.to_string_lossy())
+                .set_args(&[arg])
+                .set_macos_launch_mode(auto_launch::MacOSLaunchMode::LaunchAgent)
+                // Without AssociatedBundleIdentifiers, macOS 13+ attributes the
+                // LaunchAgent to the developer named in the code signature
+                // ("<developer> added items that can run in the background")
+                // instead of showing Clipsa's name and icon. Ignored elsewhere.
+                .set_bundle_identifiers(&[bundle_id])
+                .build()
+                .map_err(platform_err)?;
+            Ok(Self {
+                entry,
+                bundle_id: bundle_id.to_owned(),
+                name: name.to_owned(),
+            })
+        }
+
+        /// Create or remove the entry. An enabled macOS entry written by an
+        /// older version (no bundle identifier) is rewritten.
+        pub fn set(&self, enabled: bool) -> ClipsaResult<()> {
+            let current = self.entry.is_enabled().map_err(platform_err)?;
+            if enabled && (!current || self.needs_rewrite()) {
+                self.entry.enable().map_err(platform_err)
+            } else if !enabled && current {
+                self.entry.disable().map_err(platform_err)
+            } else {
+                Ok(())
+            }
+        }
+
+        /// macOS LaunchAgents written before 0.1.2 have no bundle identifier.
+        fn needs_rewrite(&self) -> bool {
+            if !cfg!(target_os = "macos") {
+                return false;
+            }
+            let Some(home) = dirs::home_dir() else {
+                return false;
+            };
+            let plist = home.join(format!("Library/LaunchAgents/{}.plist", self.name));
+            std::fs::read_to_string(plist)
+                .is_ok_and(|text| !text.contains(&format!("<string>{}</string>", self.bundle_id)))
+        }
     }
 }
 

@@ -53,7 +53,7 @@ The only network traffic is the update check (`check_for_updates`), which is off
 ## OS permissions
 
 - macOS **Accessibility** is needed only for `paste_item` (simulating Cmd+V into another app). Capturing does not need it. The Mac App Store edition does not paste and never asks for it.
-- The global hotkey and launch at login use the standard Tauri plugins; the Mac App Store edition uses macOS Login Items (`SMAppService`) instead of the autostart plugin.
+- The global hotkey uses the standard Tauri plugin. Launch at login writes a LaunchAgent (macOS), a `Run` registry value (Windows) or an XDG autostart entry (Linux) through `auto-launch`; the Mac App Store edition uses macOS Login Items (`SMAppService`) instead.
 
 ## Release pipeline
 

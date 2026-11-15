@@ -20,7 +20,8 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-global-shortcut = "2"
-tauri-plugin-autostart = "2"
+# Launch at login for direct builds (LaunchAgent / registry / XDG autostart).
+auto-launch = "0.6"
 tauri-plugin-single-instance = "2"
 tauri-plugin-updater = { version = "2", optional = true }
 tauri-plugin-process = "2"
