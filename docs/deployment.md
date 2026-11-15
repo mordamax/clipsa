@@ -45,7 +45,7 @@ Runs on pushes and PRs to `master` on Ubuntu, macOS and Windows: `pnpm check`, `
 
 ## Release workflow (`.github/workflows/release.yml`)
 
-Triggered by pushing a `v*` tag, or manually with `workflow_dispatch`. Either way the version comes from `tauri.conf.json`.
+Triggered by pushing a version tag `vX.Y.Z`. It can also be re-run by hand (`workflow_dispatch`) on that tag: choose the tag under "Use workflow from". The tag must equal `v` + the version in `tauri.conf.json`; the **notes** job fails otherwise, so a mistyped tag can never add files to an already published release.
 
 1. **notes**: extracts the `CHANGELOG.md` section for the version (see [Release notes](#release-notes)). The workflow stops here, before anything is built or uploaded, if the section is missing or empty.
 2. **build** (matrix):
@@ -54,13 +54,13 @@ Triggered by pushing a `v*` tag, or manually with `workflow_dispatch`. Either wa
    - Linux: `ubuntu-22.04`
    - Windows: `windows-latest`
 
-   Each job runs `tauri-apps/tauri-action@v0` with `--config src-tauri/tauri.release.conf.json`. It uploads installers, updater bundles and `.sig` files to a **draft** release `v<version>` and merges each platform's entry into `latest.json`. The release notes are passed as `releaseBody`, which tauri-action uses both as the GitHub release text and as the `notes` field of `latest.json`.
+   Each job runs `tauri-apps/tauri-action` (v0.6.2) with `--config src-tauri/tauri.release.conf.json`. It uploads installers, updater bundles and `.sig` files to a **draft** release `v<version>` and merges each platform's entry into `latest.json`. The release notes are passed as `releaseBody`, which tauri-action uses both as the GitHub release text and as the `notes` field of `latest.json`.
 
    On macOS, Tauri notarizes and staples the `.app` but only signs the DMG around it. The next step submits the DMG to Apple's notary service, staples the ticket and replaces the uploaded DMG, so `spctl -a -vvv -t install Clipsa_<version>_<arch>.dmg` reports `Notarized Developer ID`. The first notarizations for a new team can take an hour.
-3. **publish**: runs only if every build succeeded and makes the draft public (`gh release edit --draft=false --latest`). From that moment `https://github.com/mordamax/clipsa/releases/latest/download/latest.json` serves the new version to the in-app updater.
-4. **homebrew**: renders the cask from `packaging/homebrew/clipsa.rb.in` with the published DMGs' checksums, attaches `clipsa.rb` to the release and, if `HOMEBREW_TAP_TOKEN` is set, pushes it to `mordamax/homebrew-tap` (`brew install --cask mordamax/tap/clipsa`).
+3. **publish**: runs only if every build succeeded. It renders the Homebrew cask from `packaging/homebrew/clipsa.rb.in` with the final DMGs' checksums, attaches `clipsa.rb`, then makes the draft public (`gh release edit --draft=false --latest`). Releases are **immutable** once published (repository setting), which is why everything is attached before this point. From then on `https://github.com/mordamax/clipsa/releases/latest/download/latest.json` serves the new version to the in-app updater.
+4. **homebrew**: gets a one-hour token from the Clipsa Homebrew GitHub App (installed only on `mordamax/homebrew-tap`) and pushes `clipsa.rb` there (`brew install --cask mordamax/tap/clipsa`).
 
-If any build fails, the release stays a draft and no user receives the update. Fix the problem, delete the draft, and re-run.
+If any build fails, the release stays a draft and no user receives the update. Fix the problem, delete the draft, then either re-run the failed jobs or, if the fix needs a new commit, release it as the next patch version: version tags can't be moved or deleted (ruleset "Immutable version tags"). To re-tag an unpublished version anyway, temporarily disable that ruleset under Settings → Rules.
 
 ### Release notes
 
@@ -79,17 +79,21 @@ Notes flow: `CHANGELOG.md` → **notes** job → tauri-action `releaseBody` → 
 
 ### Secrets
 
-| Secret | Needed for |
-|---|---|
-| `TAURI_SIGNING_PRIVATE_KEY` | **Required.** Contents of `~/.tauri/clipsa-updater.key`. Without it, building with updater artifacts fails. |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Only if the updater key is password-protected |
-| `APPLE_CERTIFICATE` | Required. macOS code signing: single-line base64 of the Developer ID Application `.p12` (`openssl base64 -A -in cert.p12`) |
-| `APPLE_CERTIFICATE_PASSWORD` | Required. Password of that `.p12` |
-| `APPLE_SIGNING_IDENTITY` | Optional, e.g. `Developer ID Application: Name (TEAMID)`; defaults to the identity in the certificate |
-| `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID` | Required. Notarization (Apple ID email, app-specific password, team id) |
-| `HOMEBREW_TAP_TOKEN` | Optional. Fine-grained token with contents:write on `mordamax/homebrew-tap`. Without it the cask is only attached to the release. |
+Release secrets live in the GitHub environment **`release`** (Settings → Environments), which accepts only jobs running from tags matching `v*.*.*`. No secret is stored at repository level, so workflows on branches and pull requests can't read them. See [Security → Release pipeline](./security.md#release-pipeline).
 
-`GITHUB_TOKEN` is provided automatically.
+| Name (in `release`) | Kind | Needed for |
+|---|---|---|
+| `TAURI_SIGNING_PRIVATE_KEY` | secret | **Required.** Contents of `~/.tauri/clipsa-updater.key`. Without it, building with updater artifacts fails. |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | secret | Only if the updater key is password-protected |
+| `APPLE_CERTIFICATE` | secret | Required. Single-line base64 of the Developer ID Application `.p12` (`openssl base64 -A -in cert.p12`) |
+| `APPLE_CERTIFICATE_PASSWORD` | secret | Required. Password of that `.p12` |
+| `APPLE_SIGNING_IDENTITY` | secret | Optional, e.g. `Developer ID Application: Name (TEAMID)`; defaults to the identity in the certificate |
+| `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` | secret | Required. Notarization: App Store Connect API key ID and issuer ID. The key has the **Developer** role, which is enough for notarization and gives no access to the Apple ID's iCloud data. |
+| `APPLE_API_PRIVATE_KEY` | secret | Required. Contents of that key's `AuthKey_<KEYID>.p8` |
+| `HOMEBREW_APP_CLIENT_ID` | variable | Required for the **homebrew** job. Client ID of the Clipsa Homebrew GitHub App |
+| `HOMEBREW_APP_PRIVATE_KEY` | secret | Required for the **homebrew** job. A private key (`.pem`) of that App |
+
+`GITHUB_TOKEN` is provided automatically; the default is read-only and only the jobs that upload to the release get `contents: write`.
 
 macOS releases must be signed with a Developer ID and notarized; the workflow fails before building if any required Apple secret is missing. A stable signing identity is what lets users click "Always Allow" for keychain access and grant Accessibility once: macOS ties both to the code signature, so unsigned builds would re-prompt after every update. (The Tauri bundler treats an Apple variable set to an empty string as configured, so the workflow exports them only after this check.)
 
@@ -170,7 +174,7 @@ This checks that the app and its webviews start, data is written to the containe
 
 ### Secrets
 
-The workflow fails before building and lists any missing secret. These are separate from the Developer ID secrets that `release.yml` uses.
+These live in the GitHub environment **`appstore`**, which accepts only runs from `master`. The workflow fails before building and lists any missing secret. They are separate from the Developer ID secrets in `release`.
 
 | Secret | Value |
 |---|---|
@@ -181,7 +185,7 @@ The workflow fails before building and lists any missing secret. These are separ
 | `APPSTORE_INSTALLER_CERTIFICATE_PASSWORD` | Password of that `.p12` |
 | `APPSTORE_INSTALLER_IDENTITY` | e.g. `3rd Party Mac Developer Installer: Your Name (ABCDE12345)` (the certificate's common name) |
 | `APPSTORE_PROVISIONING_PROFILE` | base64 of the `.provisionprofile` |
-| `APPLE_TEAM_ID` | Team ID, shared with `release.yml` |
+| `APPLE_TEAM_ID` | Team ID (fills the entitlements' application identifier) |
 | `APPSTORE_API_KEY_ID` | App Store Connect API Key ID. Required only when uploading. |
 | `APPSTORE_API_ISSUER_ID` | API Issuer ID. Required only when uploading. |
 | `APPSTORE_API_PRIVATE_KEY` | Contents of `AuthKey_<KEYID>.p8`. Required only when uploading. |

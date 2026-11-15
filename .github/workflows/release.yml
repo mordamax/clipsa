@@ -9,11 +9,17 @@ name: Release
 # the version in tauri.conf.json becomes the GitHub release body and, through
 # tauri-action, the `notes` field of latest.json that the in-app update window
 # shows. The release fails before building if that section is missing or empty.
+#
+# Security (docs/security.md → "Release pipeline"): signing and publishing
+# secrets live in the `release` environment, which only accepts runs from
+# version tags; actions are pinned to commit SHAs; checkouts don't keep the
+# GITHUB_TOKEN; release builds use no caches.
 
 on:
   push:
     tags:
-      - 'v*'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  # Re-run a release by hand: choose the version tag under "Use workflow from".
   workflow_dispatch:
 
 concurrency:
@@ -21,7 +27,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
@@ -33,7 +39,23 @@ jobs:
     outputs:
       body: ${{ steps.changelog.outputs.body }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # tauri-action uploads to the release named after the version in
+      # tauri.conf.json, so a tag for a different version would add files to
+      # (or overwrite files in) that version's already published release.
+      - name: Check that the tag matches the app version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          version="$(jq -r .version src-tauri/tauri.conf.json)"
+          if [ "$REF_TYPE" != "tag" ] || [ "$REF_NAME" != "v$version" ]; then
+            echo "::error::Releases run from the tag v$version (the version in tauri.conf.json), not from $REF_TYPE '$REF_NAME'."
+            exit 1
+          fi
 
       - name: Extract this version's CHANGELOG section
         id: changelog
@@ -62,6 +84,9 @@ jobs:
     name: Build (${{ matrix.name }})
     needs: notes
     runs-on: ${{ matrix.platform }}
+    environment: release
+    permissions:
+      contents: write # create the draft release and upload assets
     strategy:
       fail-fast: false
       matrix:
@@ -83,7 +108,9 @@ jobs:
             args: ''
             rust_targets: ''
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Install Linux system dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -99,35 +126,31 @@ jobs:
             libdbus-1-dev
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           version: 9
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
-          cache: pnpm
 
       - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable branch
         with:
+          toolchain: stable
           targets: ${{ matrix.rust_targets }}
-
-      - name: Cache Cargo
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-          key: ${{ matrix.rust_targets }}
 
       - name: Install JS dependencies
         run: pnpm install --frozen-lockfile
 
       # Unsigned or un-notarized Mac builds show Gatekeeper warnings and make
       # every update look like a new app to macOS (keychain prompts, lost
-      # Accessibility permission), so releases require both. The variables are
-      # exported only after the check because the Tauri bundler treats an Apple
-      # env var set to an empty string as configured.
+      # Accessibility permission), so releases require both. Notarization uses
+      # an App Store Connect API key (Developer role), which can't reach the
+      # Apple ID's iCloud data the way an app-specific password can. The
+      # variables are exported only after the check because the Tauri bundler
+      # treats an Apple env var set to an empty string as configured.
       - name: Configure macOS signing and notarization
         if: runner.os == 'macOS'
         shell: bash
@@ -135,24 +158,26 @@ jobs:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
         run: |
           missing=()
-          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_API_ISSUER APPLE_API_KEY APPLE_API_PRIVATE_KEY; do
             [ -n "${!name}" ] || missing+=("$name")
           done
           if [ ${#missing[@]} -gt 0 ]; then
-            echo "::error::macOS releases must be signed and notarized. Missing secrets: ${missing[*]}"
+            echo "::error::macOS releases must be signed and notarized. Missing in the 'release' environment: ${missing[*]} (APPLE_API_KEY comes from the secret APPLE_API_KEY_ID)"
             exit 1
           fi
+          key_path="$RUNNER_TEMP/AuthKey_$APPLE_API_KEY.p8"
+          (umask 077 && printf '%s\n' "$APPLE_API_PRIVATE_KEY" > "$key_path")
           {
             echo "APPLE_CERTIFICATE=$APPLE_CERTIFICATE"
             echo "APPLE_CERTIFICATE_PASSWORD=$APPLE_CERTIFICATE_PASSWORD"
-            echo "APPLE_ID=$APPLE_ID"
-            echo "APPLE_PASSWORD=$APPLE_PASSWORD"
-            echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"
+            echo "APPLE_API_ISSUER=$APPLE_API_ISSUER"
+            echo "APPLE_API_KEY=$APPLE_API_KEY"
+            echo "APPLE_API_KEY_PATH=$key_path"
           } >> "$GITHUB_ENV"
           if [ -n "$APPLE_SIGNING_IDENTITY" ]; then
             echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY" >> "$GITHUB_ENV"
@@ -160,7 +185,7 @@ jobs:
 
       - name: Build and upload
         id: tauri
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -187,66 +212,95 @@ jobs:
         run: |
           dmg="$(jq -r '.[] | select(endswith(".dmg"))' <<<"$ARTIFACT_PATHS")"
           [ -f "$dmg" ] || { echo "::error::No DMG among tauri-action artifacts: $ARTIFACT_PATHS"; exit 1; }
-          result="$(xcrun notarytool submit "$dmg" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" --wait --output-format json)"
+          auth=(--key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY" --issuer "$APPLE_API_ISSUER")
+          result="$(xcrun notarytool submit "$dmg" "${auth[@]}" --wait --output-format json)"
           echo "$result"
           if [ "$(jq -r .status <<<"$result")" != "Accepted" ]; then
-            xcrun notarytool log "$(jq -r .id <<<"$result")" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" \
-              --team-id "$APPLE_TEAM_ID" || true
+            xcrun notarytool log "$(jq -r .id <<<"$result")" "${auth[@]}" || true
             exit 1
           fi
           xcrun stapler staple "$dmg"
           spctl -a -vvv -t install "$dmg"
-          gh release upload "v$(jq -r .version src-tauri/tauri.conf.json)" "$dmg" --clobber
+          gh release upload "v$(jq -r .version src-tauri/tauri.conf.json)" "$dmg" --clobber -R "$GITHUB_REPOSITORY"
 
+      - name: Remove the notarization key
+        if: always() && runner.os == 'macOS'
+        shell: bash
+        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8
+
+  # Releases are immutable once published (repository setting), so everything,
+  # including the Homebrew cask, is attached while the release is a draft.
   publish:
     name: Publish release
     needs: build
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Read app version
-        id: version
-        run: echo "version=$(jq -r .version src-tauri/tauri.conf.json)" >> "$GITHUB_OUTPUT"
-
-      - name: Publish draft release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release edit "v${{ steps.version.outputs.version }}" --draft=false --latest
-
-  homebrew:
-    name: Update Homebrew cask
-    needs: publish
-    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
-      - name: Render cask from the published DMGs
+      - name: Render the Homebrew cask from the final DMGs
         run: |
           version="$(jq -r .version src-tauri/tauri.conf.json)"
-          gh release download "v$version" -D dmg \
+          gh release download "v$version" -D dmg -R "$GITHUB_REPOSITORY" \
             -p "Clipsa_${version}_aarch64.dmg" -p "Clipsa_${version}_x64.dmg"
           arm="$(sha256sum "dmg/Clipsa_${version}_aarch64.dmg" | cut -d' ' -f1)"
           intel="$(sha256sum "dmg/Clipsa_${version}_x64.dmg" | cut -d' ' -f1)"
           sed -e "s/@VERSION@/$version/" -e "s/@SHA256_ARM@/$arm/" -e "s/@SHA256_INTEL@/$intel/" \
             packaging/homebrew/clipsa.rb.in > clipsa.rb
-          gh release upload "v$version" clipsa.rb --clobber
+          gh release upload "v$version" clipsa.rb --clobber -R "$GITHUB_REPOSITORY"
+
+      - name: Publish draft release
+        run: gh release edit "v$(jq -r .version src-tauri/tauri.conf.json)" --draft=false --latest -R "$GITHUB_REPOSITORY"
+
+  # Pushes the cask with a short-lived token from the Clipsa Homebrew GitHub
+  # App, which is installed only on mordamax/homebrew-tap (contents: write).
+  homebrew:
+    name: Update Homebrew cask
+    needs: publish
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Download the cask attached to the release
+        run: |
+          version="$(jq -r .version src-tauri/tauri.conf.json)"
+          gh release download "v$version" -p clipsa.rb -R "$GITHUB_REPOSITORY"
           echo "VERSION=$version" >> "$GITHUB_ENV"
 
-      # Needs a fine-grained token with contents:write on mordamax/homebrew-tap.
+      - name: Get a token for mordamax/homebrew-tap
+        id: tap-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.HOMEBREW_APP_CLIENT_ID }}
+          private-key: ${{ secrets.HOMEBREW_APP_PRIVATE_KEY }}
+          owner: mordamax
+          repositories: homebrew-tap
+          permission-contents: write
+
       - name: Push cask to mordamax/homebrew-tap
-        if: env.HOMEBREW_TAP_TOKEN != ''
+        env:
+          TAP_TOKEN: ${{ steps.tap-token.outputs.token }}
+          APP_SLUG: ${{ steps.tap-token.outputs.app-slug }}
         run: |
-          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/mordamax/homebrew-tap.git" tap
+          bot_id="$(GH_TOKEN="$TAP_TOKEN" gh api "/users/${APP_SLUG}%5Bbot%5D" --jq .id)"
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/mordamax/homebrew-tap.git" tap
           mkdir -p tap/Casks
           cp clipsa.rb tap/Casks/clipsa.rb
           cd tap
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
           git add Casks/clipsa.rb
           git diff --cached --quiet && exit 0
           git commit -m "clipsa ${VERSION}"
