@@ -7,8 +7,7 @@ cask "clipsa" do
   sha256 arm:   "@SHA256_ARM@",
          intel: "@SHA256_INTEL@"
 
-  url "https://github.com/mordamax/clipsa/releases/download/v#{version}/Clipsa_#{version}_#{arch}.dmg",
-      verified: "github.com/mordamax/clipsa/"
+  url "https://github.com/mordamax/clipsa/releases/download/v#{version}/Clipsa_#{version}_#{arch}.dmg"
   name "Clipsa"
   desc "Private, encrypted clipboard history manager"
   homepage "https://clipsa.dev"
@@ -17,8 +16,6 @@ cask "clipsa" do
     url :url
     strategy :github_latest
   end
-
-  depends_on macos: ">= :catalina"
 
   app "Clipsa.app"
 
