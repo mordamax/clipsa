@@ -24,6 +24,12 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    ignore:
+      # windows-future 0.100 needs windows-core 0.100, but the `windows` crate
+      # (0.62, Windows Hello in platform.rs) still uses windows-future 0.3 and no
+      # `windows` 0.100 is published. Drop this once it is.
+      - dependency-name: windows-future
+        versions: ['>=0.100']
     groups:
       cargo:
         patterns: ['*']
@@ -37,6 +43,12 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    ignore:
+      # TypeScript 7 (the native compiler) has no classic compiler API yet:
+      # svelte-check (^5 || ^6) and @sveltejs/kit 3 (^6) can't use it. Drop
+      # this once both support it.
+      - dependency-name: typescript
+        versions: ['>=7']
     groups:
       npm:
         patterns: ['*']

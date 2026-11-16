@@ -38,10 +38,11 @@ dirs = "7"
 base64 = "0.23"
 
 # Storage
-rusqlite = { version = "0.32", features = ["bundled"] }
+# `fallible_uint`: u64 FromSql/ToSql (default before rusqlite 0.38).
+rusqlite = { version = "0.41", features = ["bundled", "fallible_uint"] }
 
 # Crypto
-aes-gcm = { version = "0.10", features = ["zeroize"] }
+aes-gcm = { version = "0.11", features = ["zeroize"] }
 sha2 = "0.11"
 hmac = "0.13"
 hkdf = "0.13"
@@ -68,8 +69,10 @@ arboard = { version = "3.7", features = ["wayland-data-control"] }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = ["Security_Credentials_UI", "Win32_Foundation", "Win32_System_WinRT", "Win32_UI_WindowsAndMessaging"] }
+# Must share windows-core with `windows` 0.62 (windows-future 0.100 needs the
+# unpublished `windows` 0.100).
 windows-future = "0.3"
-windows-sys = { version = "0.59", features = [
+windows-sys = { version = "0.61", features = [
     "Win32_Foundation",
     "Win32_System_DataExchange",
     "Win32_System_Threading",
