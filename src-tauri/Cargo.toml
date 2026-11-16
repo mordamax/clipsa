@@ -29,22 +29,22 @@ tauri-plugin-dialog = "2"
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-thiserror = "1"
+thiserror = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
-dirs = "5"
-base64 = "0.22"
+dirs = "7"
+base64 = "0.23"
 
 # Storage
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.41", features = ["bundled"] }
 
 # Crypto
-aes-gcm = { version = "0.10", features = ["zeroize"] }
-sha2 = "0.10"
-hmac = "0.12"
-hkdf = "0.12"
+aes-gcm = { version = "0.11", features = ["zeroize"] }
+sha2 = "0.11"
+hmac = "0.13"
+hkdf = "0.13"
 zeroize = { version = "1", features = ["derive"] }
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
 
@@ -68,8 +68,8 @@ arboard = { version = "3.7", features = ["wayland-data-control"] }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = ["Security_Credentials_UI", "Win32_Foundation", "Win32_System_WinRT", "Win32_UI_WindowsAndMessaging"] }
-windows-future = "0.3"
-windows-sys = { version = "0.59", features = [
+windows-future = "0.100"
+windows-sys = { version = "0.61", features = [
     "Win32_Foundation",
     "Win32_System_DataExchange",
     "Win32_System_Threading",
