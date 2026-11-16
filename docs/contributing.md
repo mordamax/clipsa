@@ -26,6 +26,7 @@ Run the same checks as CI:
 ```bash
 pnpm check                      # Svelte / TypeScript
 pnpm build                      # builds the SPA into build/ (needed before cargo commands on a clean checkout)
+pnpm site --check               # site pages generated from CHANGELOG.md are current (pnpm site to fix)
 cd src-tauri
 cargo fmt --all -- --check
 cargo clippy --all-targets -- -D warnings
@@ -44,9 +45,11 @@ Rust tests live next to the code in `#[cfg(test)]` modules. Tests must never use
 - Platform-specific code belongs in `platform.rs` behind `#[cfg(target_os = …)]`, with a defined fallback for the other platforms.
 - Do not add network calls. The only network use is the opt-in update check.
 
-## Commits and branches
+## Branches and pull requests
 
-Branch from `master`. Use conventional-style commit messages (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `ci:`).
+`master` only changes through pull requests, for maintainers too: direct pushes, force pushes and deletion are blocked. A PR can merge once CI passes on Ubuntu, macOS and Windows and the **Site** check passes; it is squash-merged, so `master` stays linear, and the branch is deleted. Branch from `master` and use conventional-style commit messages and PR titles (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `ci:`, `deps:`).
+
+Dependabot opens one grouped PR per ecosystem (GitHub Actions, Cargo, npm) each week, majors included; see `.github/dependabot.yml`.
 
 ## Releases
 

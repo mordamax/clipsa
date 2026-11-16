@@ -1,10 +1,19 @@
 version: 2
+
+# One pull request per ecosystem and week, majors included, so updates are
+# reviewed and tested together instead of as a stream of single-package PRs.
+# If one update in a group can't land yet, keep the rest moving with
+# `@dependabot ignore <dependency> major version` (or `minor version`) on the PR.
+# Security updates are grouped the same way but arrive as soon as they exist.
+# The cooldown skips versions younger than a week, which keeps freshly published
+# (and occasionally hijacked) releases out of the build for a while.
 updates:
-  # Keeps the SHA-pinned actions (and their version comments) current.
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     groups:
       actions:
         patterns: ['*']
@@ -13,14 +22,24 @@ updates:
     directory: /src-tauri
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     groups:
-      cargo-minor:
-        update-types: [minor, patch]
+      cargo:
+        patterns: ['*']
+      cargo-security:
+        applies-to: security-updates
+        patterns: ['*']
 
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     groups:
-      npm-minor:
-        update-types: [minor, patch]
+      npm:
+        patterns: ['*']
+      npm-security:
+        applies-to: security-updates
+        patterns: ['*']
