@@ -41,7 +41,7 @@ The public half of this key is `plugins.updater.pubkey` in `tauri.conf.json`. **
 
 ## CI (`.github/workflows/ci.yml`)
 
-Runs on pushes and PRs to `master` on Ubuntu, macOS and Windows: `pnpm check`, `pnpm build` (`tauri::generate_context!` needs `build/` to exist), `cargo fmt --check`, `cargo clippy -D warnings` (plain, `--features self-update` and, on macOS, `--features app-store`) and `cargo test --all-targets --features self-update`. Tests use injected keys and never touch the OS keychain. Changes that only touch `site/`, `docs/` or Markdown files skip CI.
+Runs on every pull request to `master` and on pushes to `master` on Ubuntu, macOS and Windows: `pnpm check`, `pnpm build` (`tauri::generate_context!` needs `build/` to exist), `cargo fmt --check`, `cargo clippy -D warnings` (plain, `--features self-update` and, on macOS, `--features app-store`) and `cargo test --all-targets --features self-update`. A **Site** job checks that the site pages generated from `CHANGELOG.md` are current. Tests use injected keys and never touch the OS keychain. All jobs are required checks for merging a PR; pushes to `master` that only touch `site/`, `docs/` or Markdown skip the app checks, since their PR already ran them.
 
 ## Release workflow (`.github/workflows/release.yml`)
 
@@ -72,11 +72,12 @@ Notes flow: `CHANGELOG.md` → **notes** job → tauri-action `releaseBody` → 
 
 ### Cutting a release
 
-1. Add a non-empty, dated section for the version to `CHANGELOG.md`.
-2. Set the same version in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `package.json`.
-3. `pnpm site` to regenerate the site's changelog page and latest version from `CHANGELOG.md` (see [Website](#website-vercel)). Commit everything to `master`.
-4. `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag must equal `v` + the version in `tauri.conf.json`. The workflow stops before building if the site wasn't regenerated.
-5. Wait for the workflow to finish, check the published release notes and assets, then deploy the site.
+1. On a branch, add a non-empty, dated section for the version to `CHANGELOG.md`.
+2. Set the same version in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `package.json` (and `cargo update -p clipsa` for `Cargo.lock`).
+3. `pnpm site` to regenerate the site's changelog page and latest version from `CHANGELOG.md` (see [Website](#website-vercel)).
+4. Open a PR (`chore: release X.Y.Z`), wait for CI, merge it.
+5. Tag the merge commit on `master`: `git pull && git tag vX.Y.Z && git push origin vX.Y.Z`. The tag must equal `v` + the version in `tauri.conf.json`. The workflow stops before building if the site wasn't regenerated.
+6. Wait for the workflow to finish, check the published release notes and assets, then deploy the site.
 
 ### Secrets
 

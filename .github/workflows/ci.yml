@@ -1,14 +1,14 @@
 name: CI
 
-# The website (site/) and docs live in this repo too; changes that only touch
-# them don't need the app checks.
+# Every pull request runs every job: they are required checks for merging into
+# master, and a check that is skipped never reports, which would block the PR.
+# Pushes to master (merged PRs) skip the app checks for site/doc-only changes.
 on:
   push:
     branches: [master]
     paths-ignore: ['site/**', 'docs/**', '**/*.md', '.vercelignore']
   pull_request:
     branches: [master]
-    paths-ignore: ['site/**', 'docs/**', '**/*.md', '.vercelignore']
   workflow_dispatch:
 
 permissions:
@@ -19,6 +19,19 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
+  # site/changelog.html and the version on the site are generated from
+  # CHANGELOG.md (scripts/build-site.mjs) and committed; this catches a
+  # forgotten `pnpm site`.
+  site:
+    name: Site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Generated pages are up to date
+        run: node scripts/build-site.mjs --check
+
   check:
     name: Check (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
