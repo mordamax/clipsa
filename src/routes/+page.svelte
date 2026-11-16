@@ -1,20 +1,20 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from 'svelte';
-  import { get } from 'svelte/store';
-  import { page } from '$app/stores';
+  import { get, toStore } from 'svelte/store';
+  import { page } from '$app/state';
   import { listen } from '@tauri-apps/api/event';
-  import AppShell from '$lib/components/AppShell.svelte';
-  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-  import Icon from '$lib/components/Icon.svelte';
-  import ItemPreview from '$lib/components/ItemPreview.svelte';
-  import ItemRow from '$lib/components/ItemRow.svelte';
-  import ItemThumb from '$lib/components/ItemThumb.svelte';
-  import Keys from '$lib/components/Keys.svelte';
-  import LockScreen from '$lib/components/LockScreen.svelte';
-  import Modal from '$lib/components/Modal.svelte';
-  import Onboarding from '$lib/components/Onboarding.svelte';
-  import SearchBar from '$lib/components/SearchBar.svelte';
-  import SnippetEditor from '$lib/components/SnippetEditor.svelte';
+  import AppShell from '#lib/components/AppShell.svelte';
+  import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+  import Icon from '#lib/components/Icon.svelte';
+  import ItemPreview from '#lib/components/ItemPreview.svelte';
+  import ItemRow from '#lib/components/ItemRow.svelte';
+  import ItemThumb from '#lib/components/ItemThumb.svelte';
+  import Keys from '#lib/components/Keys.svelte';
+  import LockScreen from '#lib/components/LockScreen.svelte';
+  import Modal from '#lib/components/Modal.svelte';
+  import Onboarding from '#lib/components/Onboarding.svelte';
+  import SearchBar from '#lib/components/SearchBar.svelte';
+  import SnippetEditor from '#lib/components/SnippetEditor.svelte';
   import {
     clipboardActions,
     error,
@@ -25,19 +25,21 @@
     pinnedOnly,
     stats,
     total
-  } from '$lib/stores/clipboard';
-  import { handleLockedError, lockState, onLockChange } from '$lib/stores/lock';
-  import { ensureSettings, settings, settingsLoaded, updateSettings } from '$lib/stores/settings';
-  import { showToast } from '$lib/stores/toast';
-  import { CONTENT_TYPE_LABELS, type HistoryQuery, type ItemView } from '$lib/types/clipboard';
-  import { errorMessage } from '$lib/utils/errors';
-  import { formatBytes, hotkeyParts } from '$lib/utils/format';
-  import { groupItems, itemHeading } from '$lib/utils/items';
+  } from '#lib/stores/clipboard.ts';
+  import { handleLockedError, lockState, onLockChange } from '#lib/stores/lock.ts';
+  import { ensureSettings, settings, settingsLoaded, updateSettings } from '#lib/stores/settings.ts';
+  import { showToast } from '#lib/stores/toast.ts';
+  import { CONTENT_TYPE_LABELS, type HistoryQuery, type ItemView } from '#lib/types/clipboard.ts';
+  import { errorMessage } from '#lib/utils/errors.ts';
+  import { formatBytes, hotkeyParts } from '#lib/utils/format.ts';
+  import { groupItems, itemHeading } from '#lib/utils/items.ts';
 
   type View = 'history' | 'pinned';
 
+  // `page` only notifies runes; as a store, the `$:` statements below follow it.
+  const pageUrl = toStore(() => page.url);
   /** The sidebar links to `/` and `/?view=pinned`. */
-  $: view = ($page.url.searchParams.get('view') === 'pinned' ? 'pinned' : 'history') as View;
+  $: view = ($pageUrl.searchParams.get('view') === 'pinned' ? 'pinned' : 'history') as View;
   $: syncView(view);
 
   let started = false;
@@ -334,10 +336,10 @@
     </header>
 
     {#if $settingsLoaded && !$settings.enable_monitoring}
-      <div class="flex shrink-0 items-center gap-2 border-b border-warning/25 bg-warning/[0.08] px-5 py-2 text-sm text-fg-2">
+      <div class="flex shrink-0 items-center gap-2 border-b border-warning/25 bg-warning/8 px-5 py-2 text-sm text-fg-2">
         <Icon name="pause" size={14} class="shrink-0 text-warning" />
         <span class="flex-1">Monitoring is paused — new copies are not being saved.</span>
-        <button type="button" class="btn-secondary btn-sm" disabled={resuming} on:click={resumeMonitoring}>Resume</button>
+        <button type="button" class="btn-secondary" disabled={resuming} on:click={resumeMonitoring}>Resume</button>
       </div>
     {/if}
 
@@ -346,7 +348,7 @@
         <div class="notice-danger" role="alert">
           <Icon name="alert" size={15} class="mt-0.5 shrink-0 text-danger" />
           <span class="flex-1">{$error}</span>
-          <button type="button" class="btn-ghost btn-sm -my-1" on:click={clipboardActions.clearError}>Dismiss</button>
+          <button type="button" class="btn-ghost -my-1" on:click={clipboardActions.clearError}>Dismiss</button>
         </div>
       </div>
     {/if}
@@ -359,7 +361,7 @@
           <div bind:this={listEl} class="px-2.5 pb-4 pt-1" role="list" on:keydown={onListKeydown}>
             {#each groups as group (group.label)}
               <div role="listitem">
-                <h2 class="group-label sticky top-0 z-[1] bg-canvas/95 px-2.5 pb-1.5 pt-3 backdrop-blur">{group.label}</h2>
+                <h2 class="group-label sticky top-0 z-1 bg-canvas/95 px-2.5 pb-1.5 pt-3 backdrop-blur-sm">{group.label}</h2>
                 <ul class="space-y-px">
                   {#each group.entries as { item, index } (item.id)}
                     <li>
@@ -369,8 +371,8 @@
                         class="focus-ring group block w-full rounded-lg text-left transition-colors {compact
                           ? 'px-2.5 py-1.5'
                           : 'px-2.5 py-2'} {selected?.id === item.id
-                          ? 'bg-accent/[0.09] ring-1 ring-inset ring-accent/25 dark:bg-accent/[0.16]'
-                          : 'hover:bg-fg/[0.045]'}"
+                          ? 'bg-accent/9 ring-1 ring-inset ring-accent/25 dark:bg-accent/16'
+                          : 'hover:bg-fg/4.5'}"
                         aria-current={selected?.id === item.id ? 'true' : undefined}
                         title={item.readable ? 'Click to copy' : undefined}
                         on:click={() => onRowClick(index)}
@@ -402,7 +404,7 @@
           <p class="px-4 py-16 text-center text-sm text-muted">Loading…</p>
         {:else}
           <div class="flex flex-col items-center px-6 py-16 text-center">
-            <span class="flex h-12 w-12 items-center justify-center rounded-2xl border border-line bg-surface text-muted shadow-sm">
+            <span class="flex h-12 w-12 items-center justify-center rounded-2xl border border-line bg-surface text-muted shadow-xs">
               <Icon name={filtering ? 'search' : view === 'pinned' ? 'pin' : 'clipboard'} size={22} />
             </span>
             {#if filtering}
@@ -433,7 +435,7 @@
       {#if selected}
         {@const item = selected}
         <aside
-          class="flex w-[44%] min-w-[17rem] max-w-[34rem] shrink-0 flex-col border-l border-line bg-surface dark:bg-surface/60"
+          class="flex w-[44%] min-w-68 max-w-136 shrink-0 flex-col border-l border-line bg-surface dark:bg-surface/60"
           aria-label="Selected item"
         >
           <div class="shrink-0 border-b border-line px-5 pb-3.5 pt-4">
@@ -467,7 +469,7 @@
                 {#if item.readable}
                   <button
                     type="button"
-                    class="btn-primary btn-sm"
+                    class="btn-primary"
                     title={defaultPlain(item) && item.content_type !== 'text' ? 'Copy as plain text' : 'Copy to clipboard'}
                     on:click={() => copy(item, 'default')}
                   >
@@ -475,7 +477,7 @@
                     {copiedMode === 'default' ? 'Copied' : 'Copy'}
                   </button>
                   {#if item.content_type === 'html'}
-                    <button type="button" class="btn-secondary btn-sm" on:click={() => copy(item, 'alternate')}>
+                    <button type="button" class="btn-secondary" on:click={() => copy(item, 'alternate')}>
                       <Icon name={copiedMode === 'alternate' ? 'check' : 'plain'} size={13} />
                       {copiedMode === 'alternate' ? 'Copied' : alternateLabel}
                     </button>
@@ -483,7 +485,7 @@
                 {/if}
                 <button
                   type="button"
-                  class="btn-secondary btn-sm"
+                  class="btn-secondary"
                   aria-pressed={item.pinned}
                   disabled={pinning}
                   on:click={() => togglePinned(item)}
@@ -492,7 +494,7 @@
                   {item.pinned ? 'Unpin' : 'Pin'}
                 </button>
                 {#if item.pinned && item.readable}
-                  <button type="button" class="btn-secondary btn-sm" on:click={() => startEdit(item)}>
+                  <button type="button" class="btn-secondary" on:click={() => startEdit(item)}>
                     <Icon name="edit" size={13} />
                     {item.content_type === 'text' ? 'Edit' : 'Rename'}
                   </button>

@@ -1,9 +1,9 @@
 <script lang="ts">
   import Icon from './Icon.svelte';
   import ItemThumb from './ItemThumb.svelte';
-  import type { ItemView } from '$lib/types/clipboard';
-  import { formatRelativeTime } from '$lib/utils/format';
-  import { itemHeading, itemMeta, looksLikeCode } from '$lib/utils/items';
+  import type { ItemView } from '#lib/types/clipboard.ts';
+  import { formatRelativeTime } from '#lib/utils/format.ts';
+  import { itemHeading, itemMeta, looksLikeCode } from '#lib/utils/items.ts';
 
   export let item: ItemView;
   export let selected = false;

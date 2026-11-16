@@ -220,7 +220,7 @@ impl CryptoManager {
 
     /// Keyed content fingerprint used for deduplication.
     pub fn content_hash(&self, kind: &str, data: &[u8]) -> String {
-        let mut mac = <Hmac<Sha256> as Mac>::new_from_slice(self.hash_key.as_ref())
+        let mut mac = <Hmac<Sha256> as hmac::KeyInit>::new_from_slice(self.hash_key.as_ref())
             .expect("HMAC accepts any key length");
         mac.update(kind.as_bytes());
         mac.update(&[0]);
@@ -284,6 +284,42 @@ mod tests {
             a.content_hash("text", b"pin"),
             a.content_hash("html", b"pin")
         );
+    }
+
+    /// Known answers captured before a dependency upgrade. Content hashes are
+    /// stored for deduplication and sealed blobs/keys persist on disk, so
+    /// these outputs must never change.
+    #[test]
+    fn outputs_match_known_answers() {
+        let key: [u8; KEY_LEN] = std::array::from_fn(|i| i as u8);
+        let crypto = CryptoManager::from_key(&key);
+
+        let hash_key: String = crypto.hash_key.iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(
+            hash_key,
+            "b7c7df0c1a7dbfabbd98f4c7194ff19f0945c0bc35e81054b2869232f487591a"
+        );
+        assert_eq!(
+            crypto.content_hash("text", b"hello, clipsa"),
+            "79f0e39d9e87fb93939a8a72e1d4f4bf500f8d228aa691fbfbbcbbc5b46ae119"
+        );
+        assert_eq!(
+            crypto.content_hash("image", &[0, 1, 2, 255]),
+            "494e268ac4212d12b6190f37afefca2391f38666f504ae3177cb1b2bc3f8c20c"
+        );
+        assert_eq!(
+            crypto.content_hash("files", b""),
+            "5976432d0b2c69c02f991b1a82164340d4e57b8e378b18fbbc4ab26750d28886"
+        );
+
+        let sealed = "Onp+Ea82mcXOYzYO/DWQ2GnskIbxC9oJtZdiFrLqeaGZ87pIpIVEm++1/eAA6XcCYeQaTf8FGLwILi+dYeNNag==";
+        assert_eq!(
+            crypto.open(sealed).unwrap(),
+            b"sealed before the dependency upgrade"
+        );
+
+        let secret = r#"{"id":"00000000-0000-4000-8000-000000000000","key":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=","created_at":"2026-01-01T00:00:00+00:00"}"#;
+        assert_eq!(*CryptoManager::deserialize_key(secret).unwrap(), key);
     }
 
     struct MemoryStore {

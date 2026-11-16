@@ -1,19 +1,20 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import { page } from '$app/stores';
+  import { toStore } from 'svelte/store';
+  import { page } from '$app/state';
   import { invoke } from '@tauri-apps/api/core';
   import { openUrl } from '@tauri-apps/plugin-opener';
   import appIcon from '../../../src-tauri/icons/128x128@2x.png';
-  import AppShell, { SETTINGS_SECTIONS, type SettingsSection } from '$lib/components/AppShell.svelte';
-  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-  import Icon from '$lib/components/Icon.svelte';
-  import Keys from '$lib/components/Keys.svelte';
-  import LockScreen from '$lib/components/LockScreen.svelte';
-  import SettingRow from '$lib/components/SettingRow.svelte';
-  import Switch from '$lib/components/Switch.svelte';
-  import { buildInfo, ensureBuildInfo } from '$lib/stores/build';
-  import { stats } from '$lib/stores/clipboard';
-  import { handleLockedError, lockState } from '$lib/stores/lock';
+  import AppShell, { SETTINGS_SECTIONS, type SettingsSection } from '#lib/components/AppShell.svelte';
+  import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
+  import Icon from '#lib/components/Icon.svelte';
+  import Keys from '#lib/components/Keys.svelte';
+  import LockScreen from '#lib/components/LockScreen.svelte';
+  import SettingRow from '#lib/components/SettingRow.svelte';
+  import Switch from '#lib/components/Switch.svelte';
+  import { buildInfo, ensureBuildInfo } from '#lib/stores/build.ts';
+  import { stats } from '#lib/stores/clipboard.ts';
+  import { handleLockedError, lockState } from '#lib/stores/lock.ts';
   import {
     ensureSettings,
     resetSettings,
@@ -21,13 +22,13 @@
     settingsError,
     settingsLoaded,
     updateSettings
-  } from '$lib/stores/settings';
-  import { showToast } from '$lib/stores/toast';
-  import type { Permissions } from '$lib/types/clipboard';
-  import type { AppSettings, Theme } from '$lib/types/settings';
-  import { showUpdater } from '$lib/updater';
-  import { errorMessage } from '$lib/utils/errors';
-  import { IS_WINDOWS, MOD_KEY, formatBytes, hotkeyParts } from '$lib/utils/format';
+  } from '#lib/stores/settings.ts';
+  import { showToast } from '#lib/stores/toast.ts';
+  import type { Permissions } from '#lib/types/clipboard.ts';
+  import type { AppSettings, Theme } from '#lib/types/settings.ts';
+  import { showUpdater } from '#lib/updater.ts';
+  import { errorMessage } from '#lib/utils/errors.ts';
+  import { IS_WINDOWS, MOD_KEY, formatBytes, hotkeyParts } from '#lib/utils/format.ts';
 
   type Key = keyof AppSettings;
   type BooleanKey = { [K in Key]: AppSettings[K] extends boolean ? K : never }[Key];
@@ -59,7 +60,9 @@
     about: 'Version, links and reset.'
   };
 
-  $: requested = $page.url.searchParams.get('section');
+  // `page` only notifies runes; as a store, the `$:` statements below follow it.
+  const pageUrl = toStore(() => page.url);
+  $: requested = $pageUrl.searchParams.get('section');
   $: section = (SETTINGS_SECTIONS.some((entry) => entry.id === requested) &&
   (requested !== 'updates' || $buildInfo.self_update)
     ? requested
@@ -347,8 +350,8 @@
                   {/if}
                   {#if permissions.accessibility !== 'granted'}
                     <div class="mt-3 flex gap-2">
-                      <button type="button" class="btn-primary btn-sm" on:click={requestPermissions}>Grant access</button>
-                      <button type="button" class="btn-secondary btn-sm" on:click={refreshPermissions}>Re-check</button>
+                      <button type="button" class="btn-primary" on:click={requestPermissions}>Grant access</button>
+                      <button type="button" class="btn-secondary" on:click={refreshPermissions}>Re-check</button>
                     </div>
                   {/if}
                   {#if permissionError}
@@ -389,14 +392,14 @@
               <label for="excluded_app_input" class="block text-sm font-medium text-fg">Excluded apps</label>
               <p class="mt-0.5 text-xs leading-relaxed text-muted">
                 Nothing is saved while one of these apps is in front. Use the bundle identifier on macOS (e.g.
-                <code class="rounded bg-fg/[0.06] px-1 text-[11px] text-fg-2">com.1password.1password</code>) or the
-                executable name on Windows (e.g. <code class="rounded bg-fg/[0.06] px-1 text-[11px] text-fg-2">KeePass.exe</code>).
+                <code class="rounded-sm bg-fg/6 px-1 text-[11px] text-fg-2">com.1password.1password</code>) or the
+                executable name on Windows (e.g. <code class="rounded-sm bg-fg/6 px-1 text-[11px] text-fg-2">KeePass.exe</code>).
                 Not supported on Linux.
               </p>
               {#if draft.excluded_apps.length > 0}
                 <ul class="mt-3 divide-y divide-line overflow-hidden rounded-lg border border-line" aria-label="Excluded apps">
                   {#each draft.excluded_apps as app}
-                    <li class="flex items-center gap-2 bg-fg/[0.015] py-1 pl-3 pr-1">
+                    <li class="flex items-center gap-2 bg-fg/1.5 py-1 pl-3 pr-1">
                       <Icon name="shield" size={14} class="shrink-0 text-subtle" />
                       <span class="min-w-0 flex-1 truncate font-mono text-xs text-fg">{app}</span>
                       <button
@@ -546,7 +549,7 @@
                 <p class="mt-0.5 text-xs text-muted">System follows your OS light or dark mode.</p>
               </div>
               <div
-                class="flex shrink-0 rounded-lg border border-line bg-fg/[0.04] p-0.5"
+                class="flex shrink-0 rounded-lg border border-line bg-fg/4 p-0.5"
                 role="radiogroup"
                 aria-labelledby="theme-label"
               >
@@ -556,7 +559,7 @@
                     role="radio"
                     aria-checked={draft.theme === value}
                     class="focus-ring h-7 rounded-md px-3 text-xs font-medium transition-colors {draft.theme === value
-                      ? 'bg-surface text-fg shadow-sm dark:bg-hover'
+                      ? 'bg-surface text-fg shadow-xs dark:bg-hover'
                       : 'text-muted hover:text-fg'}"
                     on:click={() => setTheme(value)}
                   >
@@ -607,10 +610,10 @@
           <section class="card mb-6">
             <SettingRow id="global_hotkey" label="Quick picker shortcut" error={fieldErrors.global_hotkey}>
               <svelte:fragment slot="description">
-                Opens the quick picker from any app, e.g. <code class="rounded bg-fg/[0.06] px-1 text-[11px] text-fg-2"
+                Opens the quick picker from any app, e.g. <code class="rounded-sm bg-fg/6 px-1 text-[11px] text-fg-2"
                   >CmdOrCtrl+Shift+V</code
                 >
-                or <code class="rounded bg-fg/[0.06] px-1 text-[11px] text-fg-2">Alt+Space</code>. Leave empty to disable.
+                or <code class="rounded-sm bg-fg/6 px-1 text-[11px] text-fg-2">Alt+Space</code>. Leave empty to disable.
               </svelte:fragment>
               <input
                 slot="control"
@@ -625,7 +628,7 @@
                 bind:value={draft.global_hotkey}
                 on:change={(e) => commit('global_hotkey', e.currentTarget.value.trim())}
               />
-              <div class="mt-3 flex items-center gap-2 rounded-lg border border-dashed border-line bg-fg/[0.02] px-3 py-2.5">
+              <div class="mt-3 flex items-center gap-2 rounded-lg border border-dashed border-line bg-fg/2 px-3 py-2.5">
                 <span class="text-xs text-muted">Shortcut</span>
                 {#if hotkeyPreview.length}
                   <Keys keys={hotkeyPreview} />
@@ -724,7 +727,7 @@
                 <Icon name="link" size={15} class="shrink-0 text-subtle" />
                 <span class="w-28 shrink-0 text-sm text-fg">{label}</span>
                 <span class="min-w-0 flex-1 select-text truncate font-mono text-xs text-muted">{display}</span>
-                <button type="button" class="btn-ghost btn-sm" aria-label={`Open ${label} in your browser`} on:click={() => openLink(url)}>
+                <button type="button" class="btn-ghost" aria-label={`Open ${label} in your browser`} on:click={() => openLink(url)}>
                   Open <Icon name="external" size={13} />
                 </button>
               </div>

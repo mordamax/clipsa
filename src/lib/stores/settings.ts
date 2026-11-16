@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
-import { DEFAULT_SETTINGS, type AppSettings } from '$lib/types/settings';
-import { errorMessage } from '$lib/utils/errors';
+import { DEFAULT_SETTINGS, type AppSettings } from '#lib/types/settings.ts';
+import { errorMessage } from '#lib/utils/errors.ts';
 
 /** Current settings as persisted by the backend (defaults until loaded). */
 export const settings = writable<AppSettings>({ ...DEFAULT_SETTINGS });

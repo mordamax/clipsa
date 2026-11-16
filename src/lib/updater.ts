@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { check, type Update } from '@tauri-apps/plugin-updater';
-import { settings } from '$lib/stores/settings';
-import type { AppSettings } from '$lib/types/settings';
+import { settings } from '#lib/stores/settings.ts';
+import type { AppSettings } from '#lib/types/settings.ts';
 
 /** Automatic checks run at startup and then this often. */
 export const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;

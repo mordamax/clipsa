@@ -1,10 +1,255 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@plugin '@tailwindcss/forms';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Colour names; the semantic ones are backed by the CSS variables below (light + dark). */
+@theme {
+  --color-primary-50: #eef2ff;
+  --color-primary-100: #e0e7ff;
+  --color-primary-200: #c7d2fe;
+  --color-primary-300: #a5b4fc;
+  --color-primary-400: #818cf8;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-primary-800: #3730a3;
+  --color-primary-900: #312e81;
+  --color-primary-950: #1e1b4b;
+
+  /* Tailwind v3 values of the default-palette colours used here (v4 moved the palette to OKLCH). */
+  --color-red-600: #dc2626;
+  --color-amber-300: #fcd34d;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+  --color-amber-700: #b45309;
+
+  --color-canvas: rgb(var(--c-canvas));
+  --color-sidebar: rgb(var(--c-sidebar));
+  --color-surface: rgb(var(--c-surface));
+  --color-elevated: rgb(var(--c-elevated));
+  --color-field: rgb(var(--c-field));
+  --color-hover: rgb(var(--c-hover));
+  --color-line: rgb(var(--c-line));
+  --color-line-strong: rgb(var(--c-line-strong));
+  --color-fg: rgb(var(--c-fg));
+  --color-fg-2: rgb(var(--c-fg-2));
+  --color-muted: rgb(var(--c-muted));
+  --color-subtle: rgb(var(--c-subtle));
+  --color-accent: rgb(var(--c-accent));
+  --color-accent-text: rgb(var(--c-accent-text));
+  --color-cyan: rgb(var(--c-cyan));
+  --color-success: rgb(var(--c-success));
+  --color-danger: rgb(var(--c-danger));
+  --color-warning: rgb(var(--c-warning));
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text',
+    'Segoe UI', system-ui, Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono:
+    ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono',
+    monospace;
+
+  --text-2xs: 10.5px;
+  --text-2xs--line-height: 14px;
+  --text-xs: 11.5px;
+  --text-xs--line-height: 16px;
+  --text-sm: 13px;
+  --text-sm--line-height: 18px;
+  --text-base: 14px;
+  --text-base--line-height: 20px;
+  --text-lg: 16px;
+  --text-lg--line-height: 22px;
+  --text-xl: 19px;
+  --text-xl--line-height: 26px;
+  --text-2xl: 24px;
+  --text-2xl--line-height: 30px;
+
+  --shadow-pop:
+    0 12px 32px -12px rgb(0 0 0 / 0.35), 0 2px 6px -2px rgb(0 0 0 / 0.12);
+  --shadow-glow: 0 10px 30px -12px rgb(90 84 238 / 0.85);
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+/* Tailwind v4 gives buttons the default cursor; keep v3's pointer. */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@utility focus-ring {
+  @apply focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-1 focus-visible:ring-offset-canvas;
+}
+
+/* Buttons */
+@utility btn {
+  @apply focus-ring inline-flex h-8 shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-transparent px-3 text-sm font-medium transition-[background-color,border-color,color,filter] duration-150 disabled:pointer-events-none disabled:opacity-50;
+}
+
+@utility btn-primary {
+  @apply btn text-white hover:brightness-110;
+  background-image: linear-gradient(180deg, #5a54ee, #4338ca);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.18),
+    0 6px 16px -8px rgb(79 70 229 / 0.8);
+}
+
+@utility btn-secondary {
+  @apply btn border-line-strong bg-surface text-fg shadow-xs hover:bg-hover dark:bg-elevated dark:hover:bg-hover;
+}
+
+@utility btn-ghost {
+  @apply btn text-fg-2 hover:bg-fg/6 hover:text-fg;
+}
+
+@utility btn-danger {
+  @apply btn bg-danger text-white hover:brightness-110 dark:bg-red-600;
+}
+
+@utility btn-danger-ghost {
+  @apply btn text-danger hover:bg-danger/10;
+}
+
+@utility icon-btn {
+  @apply focus-ring inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-fg/[0.07] hover:text-fg disabled:pointer-events-none disabled:opacity-40;
+}
+
+@utility icon-btn-sm {
+  @apply icon-btn h-7 w-7 rounded-md;
+}
+
+/* Form controls */
+@utility input {
+  @apply block h-8 w-full rounded-lg border border-line-strong bg-field px-2.5 py-0 text-sm text-fg shadow-xs transition-colors placeholder:text-subtle hover:border-subtle/70 focus:border-accent focus:outline-hidden focus:ring-2 focus:ring-accent/30 disabled:cursor-not-allowed disabled:opacity-50 dark:shadow-none;
+
+  &:is(textarea) {
+    @apply h-auto py-2 leading-5;
+  }
+
+  &:is(select) {
+    @apply pr-8;
+    background-position: right 0.4rem center;
+  }
+}
+
+@utility input-invalid {
+  @apply border-danger focus:border-danger focus:ring-danger/25;
+}
+
+/*
+ * The forms plugin's `:checked` fill lives in the base layer, which v4's cascade layers put below
+ * these utilities, so restore it here.
+ */
+@utility radio {
+  @apply h-4 w-4 border-line-strong bg-field text-accent checked:border-transparent checked:bg-current focus:ring-2 focus:ring-accent/40 focus:ring-offset-0;
+}
+
+@utility checkbox {
+  @apply h-4 w-4 rounded-sm border-line-strong bg-field text-accent checked:border-transparent checked:bg-current focus:ring-2 focus:ring-accent/40 focus:ring-offset-0 disabled:opacity-50;
+}
+
+/* Surfaces */
+@utility card {
+  @apply rounded-xl border border-line bg-surface shadow-xs dark:shadow-none;
+}
+
+@utility panel {
+  @apply rounded-2xl border border-line bg-elevated shadow-pop;
+}
+
+@utility eyebrow {
+  @apply font-mono text-2xs font-semibold uppercase tracking-[0.14em] text-accent-text;
+}
+
+@utility group-label {
+  @apply select-none text-2xs font-semibold uppercase tracking-[0.08em] text-subtle;
+}
+
+/* Keycap */
+@utility kbd {
+  @apply inline-flex h-[1.35rem] min-w-[1.35rem] items-center justify-center whitespace-nowrap rounded-md px-1 font-sans text-2xs font-medium leading-none text-fg-2;
+  border: 1px solid rgb(var(--kbd-border));
+  border-bottom-width: 2px;
+  background: linear-gradient(180deg, var(--kbd-top), var(--kbd-bottom));
+}
+
+@utility kbd-sm {
+  @apply h-[1.1rem] min-w-[1.1rem] rounded-sm px-0.5 text-[10px];
+  border-bottom-width: 1px;
+}
+
+/* Chips & badges */
+@utility chip {
+  @apply focus-ring inline-flex h-7 shrink-0 select-none items-center gap-1 whitespace-nowrap rounded-full border border-line px-2.5 text-xs font-medium text-fg-2 transition-colors hover:border-line-strong hover:text-fg;
+
+  &[aria-pressed='true'] {
+    @apply border-accent/40 bg-accent/10 text-accent-text dark:border-accent/50 dark:bg-accent/20;
+  }
+
+  &[aria-checked='true'] {
+    @apply border-accent/40 bg-accent/10 text-accent-text dark:border-accent/50 dark:bg-accent/20;
+  }
+}
+
+@utility badge {
+  @apply inline-flex h-5 items-center gap-1 whitespace-nowrap rounded-md bg-fg/6 px-1.5 text-2xs font-medium text-fg-2;
+}
+
+@utility badge-accent {
+  @apply badge bg-accent/10 text-accent-text dark:bg-accent/20;
+}
+
+@utility badge-success {
+  @apply badge bg-success/10 text-success;
+}
+
+@utility badge-warning {
+  @apply badge bg-warning/10 text-warning;
+}
+
+/* Notices */
+@utility notice {
+  @apply flex items-start gap-2.5 rounded-xl border px-3 py-2.5 text-sm;
+}
+
+@utility notice-danger {
+  @apply notice border-danger/30 bg-danger/8 text-fg-2;
+}
+
+@utility field-error {
+  @apply mt-1 text-xs text-danger;
+}
+
+/* Clips decorative glows without becoming a scroll container (focus/scrollIntoView can't shift it). */
+@utility clip-overflow {
+  overflow: hidden;
+  overflow: clip;
+}
 
 /*
  * Design tokens. Colours are RGB channels so Tailwind can apply opacity
- * (`bg-accent/15`); see tailwind.config.js for the colour names.
+ * (`bg-accent/15`); see @theme above for the colour names.
  */
 @layer base {
   :root {
@@ -101,159 +346,5 @@
   kbd,
   pre {
     @apply font-mono;
-  }
-}
-
-@layer components {
-  .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-1 focus-visible:ring-offset-canvas;
-  }
-
-  /* Buttons */
-  .btn {
-    @apply focus-ring inline-flex h-8 shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-transparent px-3 text-sm font-medium transition-[background-color,border-color,color,filter] duration-150 disabled:pointer-events-none disabled:opacity-50;
-  }
-
-  .btn-sm {
-    @apply h-7 gap-1 rounded-md px-2.5 text-xs;
-  }
-
-  .btn-lg {
-    @apply h-10 rounded-xl px-5 text-base;
-  }
-
-  .btn-primary {
-    @apply btn text-white hover:brightness-110;
-    background-image: linear-gradient(180deg, #5a54ee, #4338ca);
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.18),
-      0 6px 16px -8px rgb(79 70 229 / 0.8);
-  }
-
-  .btn-secondary {
-    @apply btn border-line-strong bg-surface text-fg shadow-sm hover:bg-hover dark:bg-elevated dark:hover:bg-hover;
-  }
-
-  .btn-ghost {
-    @apply btn text-fg-2 hover:bg-fg/[0.06] hover:text-fg;
-  }
-
-  .btn-danger {
-    @apply btn bg-danger text-white hover:brightness-110 dark:bg-red-600;
-  }
-
-  .btn-danger-ghost {
-    @apply btn text-danger hover:bg-danger/10;
-  }
-
-  .icon-btn {
-    @apply focus-ring inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-fg/[0.07] hover:text-fg disabled:pointer-events-none disabled:opacity-40;
-  }
-
-  .icon-btn-sm {
-    @apply icon-btn h-7 w-7 rounded-md;
-  }
-
-  /* Form controls */
-  .input {
-    @apply block h-8 w-full rounded-lg border border-line-strong bg-field px-2.5 py-0 text-sm text-fg shadow-sm transition-colors placeholder:text-subtle hover:border-subtle/70 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:cursor-not-allowed disabled:opacity-50 dark:shadow-none;
-  }
-
-  textarea.input {
-    @apply h-auto py-2 leading-5;
-  }
-
-  select.input {
-    @apply pr-8;
-    background-position: right 0.4rem center;
-  }
-
-  .input-invalid {
-    @apply border-danger focus:border-danger focus:ring-danger/25;
-  }
-
-  .radio {
-    @apply h-4 w-4 border-line-strong bg-field text-accent focus:ring-2 focus:ring-accent/40 focus:ring-offset-0;
-  }
-
-  .checkbox {
-    @apply h-4 w-4 rounded border-line-strong bg-field text-accent focus:ring-2 focus:ring-accent/40 focus:ring-offset-0 disabled:opacity-50;
-  }
-
-  /* Surfaces */
-  .card {
-    @apply rounded-xl border border-line bg-surface shadow-sm dark:shadow-none;
-  }
-
-  .panel {
-    @apply rounded-2xl border border-line bg-elevated shadow-pop;
-  }
-
-  .eyebrow {
-    @apply font-mono text-2xs font-semibold uppercase tracking-[0.14em] text-accent-text;
-  }
-
-  .group-label {
-    @apply select-none text-2xs font-semibold uppercase tracking-[0.08em] text-subtle;
-  }
-
-  /* Keycap */
-  .kbd {
-    @apply inline-flex h-[1.35rem] min-w-[1.35rem] items-center justify-center whitespace-nowrap rounded-md px-1 font-sans text-2xs font-medium leading-none text-fg-2;
-    border: 1px solid rgb(var(--kbd-border));
-    border-bottom-width: 2px;
-    background: linear-gradient(180deg, var(--kbd-top), var(--kbd-bottom));
-  }
-
-  .kbd-sm {
-    @apply h-[1.1rem] min-w-[1.1rem] rounded px-0.5 text-[10px];
-    border-bottom-width: 1px;
-  }
-
-  /* Chips & badges */
-  .chip {
-    @apply focus-ring inline-flex h-7 shrink-0 select-none items-center gap-1 whitespace-nowrap rounded-full border border-line px-2.5 text-xs font-medium text-fg-2 transition-colors hover:border-line-strong hover:text-fg;
-  }
-
-  .chip[aria-pressed='true'],
-  .chip[aria-checked='true'] {
-    @apply border-accent/40 bg-accent/10 text-accent-text dark:border-accent/50 dark:bg-accent/20;
-  }
-
-  .badge {
-    @apply inline-flex h-5 items-center gap-1 whitespace-nowrap rounded-md bg-fg/[0.06] px-1.5 text-2xs font-medium text-fg-2;
-  }
-
-  .badge-accent {
-    @apply badge bg-accent/10 text-accent-text dark:bg-accent/20;
-  }
-
-  .badge-success {
-    @apply badge bg-success/10 text-success;
-  }
-
-  .badge-warning {
-    @apply badge bg-warning/10 text-warning;
-  }
-
-  /* Notices */
-  .notice {
-    @apply flex items-start gap-2.5 rounded-xl border px-3 py-2.5 text-sm;
-  }
-
-  .notice-danger {
-    @apply notice border-danger/30 bg-danger/[0.08] text-fg-2;
-  }
-
-  .field-error {
-    @apply mt-1 text-xs text-danger;
-  }
-}
-
-@layer utilities {
-  /* Clips decorative glows without becoming a scroll container (focus/scrollIntoView can't shift it). */
-  .clip-overflow {
-    overflow: hidden;
-    overflow: clip;
   }
 }

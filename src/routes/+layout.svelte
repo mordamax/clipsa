@@ -5,9 +5,9 @@
   import { goto } from '$app/navigation';
   import { listen } from '@tauri-apps/api/event';
   import { getCurrentWindow } from '@tauri-apps/api/window';
-  import { initLock, refreshLockState, tryAutoUnlock } from '$lib/stores/lock';
-  import { ensureSettings, settings } from '$lib/stores/settings';
-  import type { AppSettings, Theme } from '$lib/types/settings';
+  import { initLock, refreshLockState, tryAutoUnlock } from '#lib/stores/lock.ts';
+  import { ensureSettings, settings } from '#lib/stores/settings.ts';
+  import type { AppSettings, Theme } from '#lib/types/settings.ts';
 
   const currentWindow = getCurrentWindow();
   const isMainWindow = currentWindow.label === 'main';

@@ -1,5 +1,5 @@
-import type { ContentType, ItemView } from '$lib/types/clipboard';
-import { formatBytes, formatDayGroup } from '$lib/utils/format';
+import type { ContentType, ItemView } from '#lib/types/clipboard.ts';
+import { formatBytes, formatDayGroup } from '#lib/utils/format.ts';
 
 /** Type filters offered above lists ('' = all). */
 export const TYPE_FILTERS: [ContentType | '', string][] = [

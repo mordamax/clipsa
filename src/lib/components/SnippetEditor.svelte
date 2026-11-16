@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import Keys from './Keys.svelte';
-  import { handleLockedError } from '$lib/stores/lock';
-  import { errorMessage } from '$lib/utils/errors';
-  import { MOD_KEY } from '$lib/utils/format';
+  import { handleLockedError } from '#lib/stores/lock.ts';
+  import { errorMessage } from '#lib/utils/errors.ts';
+  import { MOD_KEY } from '#lib/utils/format.ts';
 
   /** Initial title ('' for none). */
   export let title = '';

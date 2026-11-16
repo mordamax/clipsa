@@ -20,13 +20,13 @@
   import Icon from './Icon.svelte';
   import Switch from './Switch.svelte';
   import Toast from './Toast.svelte';
-  import { buildInfo, ensureBuildInfo } from '$lib/stores/build';
-  import { clipboardActions, stats } from '$lib/stores/clipboard';
-  import { handleLockedError, lockNow, lockState } from '$lib/stores/lock';
-  import { settings, settingsLoaded, updateSettings } from '$lib/stores/settings';
-  import { showToast } from '$lib/stores/toast';
-  import { errorMessage } from '$lib/utils/errors';
-  import { formatBytes } from '$lib/utils/format';
+  import { buildInfo, ensureBuildInfo } from '#lib/stores/build.ts';
+  import { clipboardActions, stats } from '#lib/stores/clipboard.ts';
+  import { handleLockedError, lockNow, lockState } from '#lib/stores/lock.ts';
+  import { settings, settingsLoaded, updateSettings } from '#lib/stores/settings.ts';
+  import { showToast } from '#lib/stores/toast.ts';
+  import { errorMessage } from '#lib/utils/errors.ts';
+  import { formatBytes } from '#lib/utils/format.ts';
 
   export let active: 'history' | 'pinned' | 'settings';
   /** Highlighted settings section (settings page only). */
@@ -67,14 +67,14 @@
 
   const navClass = (current: boolean) =>
     `focus-ring flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium transition-colors ${
-      current ? 'bg-fg/[0.07] text-fg dark:bg-fg/[0.08]' : 'text-fg-2 hover:bg-fg/[0.045] hover:text-fg'
+      current ? 'bg-fg/[0.07] text-fg dark:bg-fg/8' : 'text-fg-2 hover:bg-fg/4.5 hover:text-fg'
     }`;
 </script>
 
 <div class="flex h-screen min-h-0 overflow-hidden">
-  <aside class="flex w-[13.5rem] shrink-0 flex-col border-r border-line bg-sidebar" aria-label="Clipsa">
+  <aside class="flex w-54 shrink-0 flex-col border-r border-line bg-sidebar" aria-label="Clipsa">
     <div class="flex items-center gap-2.5 px-4 pb-4 pt-5">
-      <img src={appIcon} alt="" class="h-8 w-8 drop-shadow" draggable="false" />
+      <img src={appIcon} alt="" class="h-8 w-8 drop-shadow-sm" draggable="false" />
       <div class="min-w-0">
         <p class="text-[15px] font-semibold leading-tight tracking-tight text-fg">Clipsa</p>
         <p class="truncate text-2xs text-muted">Clipboard history</p>
@@ -109,7 +109,7 @@
                 href="/settings?section={entry.id}"
                 class="focus-ring flex h-7 items-center gap-2 rounded-md px-2 text-[12.5px] transition-colors {section === entry.id
                   ? 'bg-accent/10 font-medium text-accent-text dark:bg-accent/20'
-                  : 'text-muted hover:bg-fg/[0.045] hover:text-fg'}"
+                  : 'text-muted hover:bg-fg/4.5 hover:text-fg'}"
                 aria-current={section === entry.id ? 'true' : undefined}
               >
                 <Icon name={entry.icon} size={14} />

@@ -1,7 +1,7 @@
 <script lang="ts">
   import TypeIcon from './TypeIcon.svelte';
   import Icon from './Icon.svelte';
-  import { CONTENT_TYPE_LABELS, type ItemView } from '$lib/types/clipboard';
+  import { CONTENT_TYPE_LABELS, type ItemView } from '#lib/types/clipboard.ts';
 
   export let item: ItemView;
   /** Tile edge in px. */
@@ -19,7 +19,7 @@
   <img
     src={item.thumbnail}
     alt=""
-    class="shrink-0 rounded-md border border-line bg-[conic-gradient(#e5e7eb_25%,#fff_0_50%,#e5e7eb_0_75%,#fff_0)] bg-[length:8px_8px] object-cover"
+    class="shrink-0 rounded-md border border-line bg-[conic-gradient(#e5e7eb_25%,#fff_0_50%,#e5e7eb_0_75%,#fff_0)] bg-size-[8px_8px] object-cover"
     style="width: {size}px; height: {size}px"
     draggable="false"
   />

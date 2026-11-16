@@ -87,7 +87,7 @@ Clipsa protects history at rest, for example a copied or backed-up database file
 
 ## Development
 
-Install Rust stable, Node.js 22, pnpm 9 and the Tauri 2 system dependencies ([details](./docs/contributing.md#setup)), then:
+Install Rust stable, Node.js 22.17 or newer, pnpm 9 and the Tauri 2 system dependencies ([details](./docs/contributing.md#setup)), then:
 
 ```bash
 pnpm install

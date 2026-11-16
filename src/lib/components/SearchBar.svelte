@@ -2,8 +2,8 @@
   import { createEventDispatcher, onDestroy } from 'svelte';
   import FilterChips from './FilterChips.svelte';
   import Icon from './Icon.svelte';
-  import type { ContentType, HistoryQuery } from '$lib/types/clipboard';
-  import { TYPE_FILTERS } from '$lib/utils/items';
+  import type { ContentType, HistoryQuery } from '#lib/types/clipboard.ts';
+  import { TYPE_FILTERS } from '#lib/utils/items.ts';
 
   export let placeholder = 'Search clipboard history…';
 
@@ -46,7 +46,7 @@
 </script>
 
 <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-  <div class="relative min-w-[12rem] flex-1">
+  <div class="relative min-w-48 flex-1">
     <Icon name="search" size={15} class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-subtle" />
     <input
       bind:this={input}

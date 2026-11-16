@@ -6,8 +6,8 @@
   import { relaunch } from '@tauri-apps/plugin-process';
   import type { Update } from '@tauri-apps/plugin-updater';
   import appIcon from '../../../src-tauri/icons/128x128@2x.png';
-  import { buildInfo, buildInfoLoaded, ensureBuildInfo } from '$lib/stores/build';
-  import { ensureSettings, settings, settingsLoaded } from '$lib/stores/settings';
+  import { buildInfo, buildInfoLoaded, ensureBuildInfo } from '#lib/stores/build.ts';
+  import { ensureSettings, settings, settingsLoaded } from '#lib/stores/settings.ts';
   import {
     CHECK_INTERVAL_MS,
     SNOOZE_MS,
@@ -15,9 +15,9 @@
     downloadAndInstall,
     isWanted,
     saveUpdatePreferences
-  } from '$lib/updater';
-  import { errorMessage } from '$lib/utils/errors';
-  import { renderReleaseNotes } from '$lib/utils/markdown';
+  } from '#lib/updater.ts';
+  import { errorMessage } from '#lib/utils/errors.ts';
+  import { renderReleaseNotes } from '#lib/utils/markdown.ts';
 
   /** How often to see whether the next automatic check is due (survives sleep). */
   const POLL_MS = 60 * 60 * 1000;
@@ -269,10 +269,10 @@
         <div class="mt-3 flex items-center gap-3 text-sm" role="status">
           <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-fg/10">
             {#if progress === null}
-              <div class="h-full w-1/3 animate-pulse rounded-full bg-gradient-to-r from-accent to-cyan"></div>
+              <div class="h-full w-1/3 animate-pulse rounded-full bg-linear-to-r/srgb from-accent to-cyan"></div>
             {:else}
               <div
-                class="h-full rounded-full bg-gradient-to-r from-accent to-cyan transition-[width]"
+                class="h-full rounded-full bg-linear-to-r/srgb from-accent to-cyan transition-[width]"
                 style="width: {progress * 100}%"
               ></div>
             {/if}
@@ -297,7 +297,7 @@
       <p class="eyebrow">Software update</p>
       <h1 class="mt-1 text-base font-semibold">Checking for updates…</h1>
       <div class="mt-4 h-1.5 overflow-hidden rounded-full bg-fg/10">
-        <div class="h-full w-1/3 animate-pulse rounded-full bg-gradient-to-r from-accent to-cyan"></div>
+        <div class="h-full w-1/3 animate-pulse rounded-full bg-linear-to-r/srgb from-accent to-cyan"></div>
       </div>
       <div class="mt-auto flex justify-end">
         <button type="button" class="btn-secondary" on:click={close}>Cancel</button>
@@ -312,7 +312,7 @@
     {:else if view === 'error'}
       <p class="eyebrow">Software update</p>
       <h1 class="mt-1 text-base font-semibold">Update check failed</h1>
-      <p class="notice-danger mt-2 break-words" role="alert">{errorText}</p>
+      <p class="notice-danger mt-2 wrap-break-word" role="alert">{errorText}</p>
       <div class="mt-auto flex justify-end gap-2">
         <button type="button" class="btn-secondary" on:click={() => runCheck(true)}>Try Again</button>
         <button type="button" class="btn-primary" on:click={close}>OK</button>

@@ -2,12 +2,12 @@
   import { onDestroy } from 'svelte';
   import Icon from './Icon.svelte';
   import TypeIcon from './TypeIcon.svelte';
-  import { clipboardActions } from '$lib/stores/clipboard';
-  import { handleLockedError } from '$lib/stores/lock';
-  import { CONTENT_TYPE_LABELS, type ItemView } from '$lib/types/clipboard';
-  import { errorMessage } from '$lib/utils/errors';
-  import { formatBytes, formatDateTime, formatRelativeTime } from '$lib/utils/format';
-  import { fileList, fileName, imageDimensions, looksLikeCode, textStats } from '$lib/utils/items';
+  import { clipboardActions } from '#lib/stores/clipboard.ts';
+  import { handleLockedError } from '#lib/stores/lock.ts';
+  import { CONTENT_TYPE_LABELS, type ItemView } from '#lib/types/clipboard.ts';
+  import { errorMessage } from '#lib/utils/errors.ts';
+  import { formatBytes, formatDateTime, formatRelativeTime } from '#lib/utils/format.ts';
+  import { fileList, fileName, imageDimensions, looksLikeCode, textStats } from '#lib/utils/items.ts';
 
   export let item: ItemView;
   /** Tighter spacing for the quick picker. */
@@ -66,11 +66,11 @@
       </div>
     {:else if item.content_type === 'image'}
       {#if item.thumbnail}
-        <div class="flex h-full max-h-[20rem] min-h-[8rem] items-center justify-center rounded-xl border border-line bg-fg/[0.03] p-3">
+        <div class="flex h-full max-h-80 min-h-32 items-center justify-center rounded-xl border border-line bg-fg/3 p-3">
           <img
             src={item.thumbnail}
             alt={item.title ?? item.preview}
-            class="max-h-full max-w-full rounded-md object-contain shadow-sm"
+            class="max-h-full max-w-full rounded-md object-contain shadow-xs"
             draggable="false"
           />
         </div>
@@ -80,7 +80,7 @@
     {:else if item.content_type === 'files'}
       <ul class="space-y-1">
         {#each files as path}
-          <li class="flex items-start gap-2 rounded-lg border border-line bg-fg/[0.02] px-2.5 py-1.5">
+          <li class="flex items-start gap-2 rounded-lg border border-line bg-fg/2 px-2.5 py-1.5">
             <span class="mt-0.5 shrink-0 text-amber-600 dark:text-amber-300">
               <TypeIcon type="files" size={14} />
             </span>
@@ -95,7 +95,7 @@
       <p class="text-danger" role="alert">{contentError}</p>
     {:else}
       <pre
-        class="select-text whitespace-pre-wrap break-words {mono
+        class="select-text whitespace-pre-wrap wrap-break-word {mono
           ? 'font-mono text-[12px] leading-[1.55]'
           : 'font-sans text-sm leading-relaxed'} text-fg">{shown}</pre>
     {/if}
