@@ -19,7 +19,7 @@
   } from '#lib/stores/lock.ts';
   import { buildInfo, ensureBuildInfo } from '#lib/stores/build.ts';
   import { settings } from '#lib/stores/settings.ts';
-  import { CONTENT_TYPE_LABELS, type ContentType, type HistoryPage, type ItemView } from '#lib/types/clipboard.ts';
+  import { CONTENT_TYPE_LABELS, type ContentType, type HistoryPage, type ItemView, type Permissions } from '#lib/types/clipboard.ts';
   import { errorMessage } from '#lib/utils/errors.ts';
   import { IS_MAC, MOD_KEY } from '#lib/utils/format.ts';
   import { TYPE_FILTERS, groupItems } from '#lib/utils/items.ts';
@@ -34,7 +34,8 @@
   let items: ItemView[] = [];
   let selected = 0;
   let loaded = false;
-  let hint = '';
+  /** Whether Enter can paste right now (direct edition with Accessibility); else it copies for ⌘V. */
+  let canPaste = true;
   let errorText = '';
   let busy = false;
   let input: HTMLInputElement;
@@ -156,24 +157,18 @@
     }
   }
 
+  /**
+   * Copies the item, closes the picker and returns focus to the previous app;
+   * pastes there too unless Accessibility isn't granted (then ⌘V is up to the user).
+   */
   async function paste(item: ItemView, plainText: boolean) {
     if (busy) return;
     busy = true;
-    hint = '';
     try {
-      await invoke('paste_item', { id: item.id, plain_text: plainText });
+      const outcome = await invoke<'pasted' | 'copied'>('paste_item', { id: item.id, plain_text: plainText });
+      canPaste = outcome === 'pasted';
     } catch (err) {
-      const message = errorMessage(err);
-      if (!message.toLowerCase().includes('accessibility')) {
-        fail(err);
-        return;
-      }
-      try {
-        await invoke('copy_item', { id: item.id, plain_text: plainText });
-        hint = 'Copied. Allow Accessibility access in Settings to paste directly.';
-      } catch (copyErr) {
-        fail(copyErr);
-      }
+      fail(err);
     } finally {
       busy = false;
     }
@@ -184,6 +179,17 @@
     await ensureBuildInfo();
     if ($buildInfo.auto_paste) paste(item, plainFor(item, invert));
     else copy(item, invert);
+  }
+
+  async function refreshCanPaste() {
+    await ensureBuildInfo();
+    if (!$buildInfo.auto_paste) return;
+    try {
+      const permissions = await invoke<Permissions>('check_permissions');
+      canPaste = permissions.accessibility !== 'denied';
+    } catch {
+      // Keep the last known state; Enter works either way.
+    }
   }
 
   function onKeydown(event: KeyboardEvent) {
@@ -253,7 +259,7 @@
 
   /** `prompt`: ask to unlock (once) if locked; false while the picker is still hidden. */
   async function onShown(prompt: boolean) {
-    hint = '';
+    refreshCanPaste();
     errorText = '';
     selected = 0;
     await refreshLockState();
@@ -426,15 +432,10 @@
       </section>
     </div>
 
-    {#if errorText || hint}
-      <div
-        class="flex shrink-0 items-center gap-2 border-t px-4 py-1.5 text-xs {errorText
-          ? 'border-danger/25 bg-danger/8 text-fg-2'
-          : 'border-warning/25 bg-warning/8 text-fg-2'}"
-        role={errorText ? 'alert' : 'status'}
-      >
-        <Icon name="alert" size={13} class="shrink-0 {errorText ? 'text-danger' : 'text-warning'}" />
-        <span class="truncate" title={errorText || hint}>{errorText || hint}</span>
+    {#if errorText}
+      <div class="flex shrink-0 items-center gap-2 border-t border-danger/25 bg-danger/8 px-4 py-1.5 text-xs text-fg-2" role="alert">
+        <Icon name="alert" size={13} class="shrink-0 text-danger" />
+        <span class="truncate" title={errorText}>{errorText}</span>
       </div>
     {/if}
 
@@ -445,7 +446,7 @@
         <span class="truncate">{items.length === LIMIT ? `${LIMIT}+` : items.length} {items.length === 1 ? 'item' : 'items'}</span>
       </span>
       <span class="ml-auto flex shrink-0 items-center gap-3.5">
-        {#if $buildInfo.auto_paste}
+        {#if $buildInfo.auto_paste && canPaste}
           <span class="flex items-center gap-1.5 font-medium text-fg-2">
             <Keys keys={['↵']} small label="Enter" /> Paste
           </span>
@@ -458,7 +459,7 @@
           <Keys keys={['⇧', '↵']} small label="Shift Enter" />
           {plainDefault ? 'Formatted' : 'Plain text'}
         </span>
-        {#if $buildInfo.auto_paste}
+        {#if $buildInfo.auto_paste && canPaste}
           <span class="flex items-center gap-1.5"><Keys keys={[MOD_KEY, 'C']} small label="{MOD_KEY} C" /> Copy</span>
         {/if}
         <span class="flex items-center gap-1.5"><Keys keys={['⇥']} small label="Tab" /> Filter</span>

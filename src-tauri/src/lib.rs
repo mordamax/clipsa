@@ -660,6 +660,18 @@ fn copy_item(
     )
 }
 
+/// What `paste_item` did. Without Accessibility permission it only copies.
+#[cfg(not(feature = "app-store"))]
+#[derive(serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+enum PasteOutcome {
+    Pasted,
+    Copied,
+}
+
+/// Copy the item, close the picker and return focus to the previous app, then
+/// paste there. Without Accessibility permission it stops after the copy, so
+/// the user can press ⌘V themselves instead of being stuck in the picker.
 #[cfg(not(feature = "app-store"))]
 #[tauri::command(async, rename_all = "snake_case")]
 fn paste_item(
@@ -667,14 +679,8 @@ fn paste_item(
     state: tauri::State<'_, AppState>,
     id: String,
     plain_text: Option<bool>,
-) -> CommandResult<()> {
+) -> CommandResult<PasteOutcome> {
     let service = to_command(state.unlocked())?;
-    if state.platform.permissions().accessibility == platform::PermissionState::Denied {
-        return Err(
-            "Pasting needs accessibility permission (System Settings → Privacy & Security → Accessibility)"
-                .into(),
-        );
-    }
     to_command(service.copy_item(&id, plain_text.unwrap_or(false)))?;
     if let Some(picker) = app.get_webview_window(PICKER_WINDOW) {
         let _ = picker.hide();
@@ -682,6 +688,9 @@ fn paste_item(
     // Hand focus back to the application the user was in before the picker.
     #[cfg(target_os = "macos")]
     let _ = app.hide();
+    if state.platform.permissions().accessibility == platform::PermissionState::Denied {
+        return Ok(PasteOutcome::Copied);
+    }
     std::thread::sleep(Duration::from_millis(150));
     // enigo looks up the key for "v" in the current keyboard layout through
     // macOS Text Input Sources, which may only be called on the main thread:
@@ -696,7 +705,7 @@ fn paste_item(
     let pasted = result
         .recv()
         .map_err(|_| "Paste failed: the main thread dropped the request".to_string())?;
-    to_command(pasted)
+    to_command(pasted).map(|()| PasteOutcome::Pasted)
 }
 
 /// The App Store sandbox does not allow sending keystrokes to other apps, so

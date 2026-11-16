@@ -10,6 +10,12 @@ release notes, in Clipsa's update window and on
 [clipsa.dev/changelog](https://clipsa.dev/changelog) (run `pnpm site`), so write
 it for users; see [Release notes](./docs/deployment.md#release-notes) for the format.
 
+## [0.1.4] - Unreleased
+
+### Changed
+
+- macOS: without the Accessibility permission, Enter in the quick picker now copies the item, closes the picker and takes you back to your app, so you can press ⌘V right away, instead of showing a message and staying open. The picker's footer shows "Copy then ⌘V" while pasting isn't possible.
+
 ## [0.1.3] - 2026-11-16
 
 ### Fixed
