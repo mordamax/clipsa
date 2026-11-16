@@ -48,7 +48,7 @@ Website: **[clipsa.dev](https://clipsa.dev)** · How it compares with Maccy, Pas
 | History window | `↑` / `↓` | Move through the list |
 | History window | `Cmd/Ctrl+F` | Focus the search field |
 
-On macOS, pasting into another app requires the **Accessibility** permission (System Settings → Privacy & Security → Accessibility). Clipsa can request it from Settings. Until it is granted, use the history window to copy an item and paste it yourself.
+On macOS, pasting into another app requires the **Accessibility** permission (System Settings → Privacy & Security → Accessibility). Clipsa can request it from Settings. Until it is granted, `Enter` in the picker copies the item, closes the picker and returns you to your app, so you press `⌘V` yourself; the picker footer shows "Copy then ⌘V" while that's the case.
 
 ### Mac App Store edition
 
