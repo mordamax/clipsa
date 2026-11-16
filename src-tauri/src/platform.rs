@@ -230,10 +230,18 @@ impl Platform {
 
     /// Send the platform paste shortcut to the focused application. Not part
     /// of the App Store edition: the sandbox does not allow posting key events.
+    /// Call it on the main thread: on macOS, enigo resolves the key through Text
+    /// Input Sources, which trap when used from another thread.
     #[cfg(not(feature = "app-store"))]
     pub fn simulate_paste(&self) -> ClipsaResult<()> {
         use enigo::{Direction, Key, Keyboard};
 
+        #[cfg(target_os = "macos")]
+        if objc2::MainThreadMarker::new().is_none() {
+            return Err(ClipsaError::Platform(
+                "Paste must run on the main thread".into(),
+            ));
+        }
         if self.permissions().accessibility == PermissionState::Denied {
             return Err(ClipsaError::Platform(
                 "Pasting needs accessibility permission".into(),
@@ -589,5 +597,27 @@ mod win {
             let path = String::from_utf16_lossy(&buffer[..len as usize]);
             path.rsplit('\\').next().map(str::to_string)
         }
+    }
+}
+
+#[cfg(all(test, target_os = "macos", not(feature = "app-store")))]
+mod tests {
+    use super::Platform;
+
+    // `paste_item` runs on a worker thread; reaching enigo from there made
+    // macOS trap in Text Input Sources (crash in 0.1.1). The guard must turn a
+    // misplaced call into an error instead.
+    #[test]
+    fn simulate_paste_refuses_to_run_off_the_main_thread() {
+        let result = std::thread::spawn(|| Platform::new().simulate_paste())
+            .join()
+            .expect("simulate_paste must not panic");
+        let message = result
+            .expect_err("must refuse off the main thread")
+            .to_string();
+        assert!(
+            message.contains("main thread"),
+            "unexpected error: {message}"
+        );
     }
 }

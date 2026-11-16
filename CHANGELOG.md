@@ -10,6 +10,12 @@ release notes, in Clipsa's update window and on
 [clipsa.dev/changelog](https://clipsa.dev/changelog) (run `pnpm site`), so write
 it for users; see [Release notes](./docs/deployment.md#release-notes) for the format.
 
+## [0.1.3] - Unreleased
+
+### Fixed
+
+- macOS: Clipsa could quit unexpectedly when pasting from the quick picker, most likely after switching keyboard layouts or waking the Mac. The paste shortcut is now sent from the main thread, as macOS requires.
+
 ## [0.1.2] - 2026-11-16
 
 ### Added
