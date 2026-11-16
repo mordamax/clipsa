@@ -40,7 +40,7 @@ Clipsa is a single Tauri 2 app. The Rust backend does clipboard monitoring, encr
 
 1. **Capture.** The platform change signal fires. If `ignore_sensitive` is on, concealed/transient copies are skipped, and copies made while an app in `excluded_apps` is frontmost are skipped. Otherwise the content is read and its HMAC computed. A duplicate only bumps `last_used_at`. New content is encrypted and inserted, retention runs, and `clipboard://changed` is emitted.
 2. **Browse.** The UI calls `get_history`. Each row's encrypted preview (up to 300 characters of text, or an image thumbnail) and title are decrypted; full content is not loaded. Search is a case-insensitive substring match over the decrypted text and titles; images match by title only.
-3. **Re-use.** `copy_item` writes the item to the clipboard and bumps it. `paste_item` also hides the picker and simulates Cmd/Ctrl+V into the previously focused app.
+3. **Re-use.** `copy_item` writes the item to the clipboard and bumps it. `paste_item` also hides the picker, returns focus to the previously focused app and simulates Cmd/Ctrl+V there; without macOS Accessibility permission it stops after the copy and reports `copied` instead of `pasted`.
 
 Clipsa's own write-backs are not re-captured as new items; they dedup to the existing row.
 
