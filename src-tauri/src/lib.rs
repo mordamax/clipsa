@@ -683,7 +683,20 @@ fn paste_item(
     #[cfg(target_os = "macos")]
     let _ = app.hide();
     std::thread::sleep(Duration::from_millis(150));
-    to_command(state.platform.simulate_paste())
+    // enigo looks up the key for "v" in the current keyboard layout through
+    // macOS Text Input Sources, which may only be called on the main thread:
+    // otherwise macOS can trap (SIGTRAP), e.g. after a layout switch or wake.
+    // This command runs on a worker thread, so only the key presses move.
+    let platform = Arc::clone(&state.platform);
+    let (done, result) = std::sync::mpsc::channel();
+    app.run_on_main_thread(move || {
+        let _ = done.send(platform.simulate_paste());
+    })
+    .map_err(|e| format!("Paste failed: {e}"))?;
+    let pasted = result
+        .recv()
+        .map_err(|_| "Paste failed: the main thread dropped the request".to_string())?;
+    to_command(pasted)
 }
 
 /// The App Store sandbox does not allow sending keystrokes to other apps, so
