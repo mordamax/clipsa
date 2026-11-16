@@ -47,7 +47,7 @@ struct AppState {
     settings: Arc<RwLock<AppSettings>>,
     /// Serialises settings updates (hotkey/autostart side effects + persist).
     settings_update: Mutex<()>,
-    tray_monitoring_item: MenuItem<Wry>,
+    tray: TrayItems,
     lock: Arc<AppLock>,
 }
 
@@ -256,7 +256,11 @@ fn initialize(app: &AppHandle) -> ClipsaResult<()> {
     service.upgrade_legacy_items()?;
 
     let initial = settings.read().unwrap_or_else(|p| p.into_inner()).clone();
-    let tray_monitoring_item = build_tray(app, &initial)?;
+    let tray = build_tray(app, &initial)?;
+    #[cfg(target_os = "macos")]
+    if let Err(e) = install_app_menu(app) {
+        warn!("Could not add Settings to the app menu: {e}");
+    }
 
     let lock = Arc::new(AppLock::new(initial.app_lock && platform.auth_supported()));
     app.manage(AppState {
@@ -265,7 +269,7 @@ fn initialize(app: &AppHandle) -> ClipsaResult<()> {
         platform,
         settings,
         settings_update: Mutex::new(()),
-        tray_monitoring_item,
+        tray,
         lock,
     });
 
@@ -347,36 +351,50 @@ fn monitoring_label(settings: &AppSettings) -> &'static str {
     }
 }
 
-fn build_tray(app: &AppHandle, settings: &AppSettings) -> ClipsaResult<MenuItem<Wry>> {
+/// Tray items whose text or shortcut follows the settings.
+struct TrayItems {
+    monitoring: MenuItem<Wry>,
+    picker: MenuItem<Wry>,
+}
+
+impl TrayItems {
+    /// Show the global hotkey next to "Quick picker" (display only: the menu
+    /// doesn't register it). Not shown when it is off or the menu can't parse it.
+    fn show_hotkey(&self, hotkey: &str) {
+        let shown = (!hotkey.is_empty()).then_some(hotkey);
+        if self.picker.set_accelerator(shown).is_err() {
+            let _ = self.picker.set_accelerator(None::<&str>);
+        }
+    }
+}
+
+fn build_tray(app: &AppHandle, settings: &AppSettings) -> ClipsaResult<TrayItems> {
     let tauri_err = |e: tauri::Error| ClipsaError::ApplicationStartup(e.to_string());
-    let open =
-        MenuItem::with_id(app, "open", "Open Clipsa", true, None::<&str>).map_err(tauri_err)?;
-    let picker =
-        MenuItem::with_id(app, "picker", "Quick picker", true, None::<&str>).map_err(tauri_err)?;
-    let monitoring = MenuItem::with_id(
-        app,
-        "monitoring",
-        monitoring_label(settings),
-        true,
-        None::<&str>,
-    )
-    .map_err(tauri_err)?;
-    let separator = PredefinedMenuItem::separator(app).map_err(tauri_err)?;
+    let item = |id: &str, text: &str| {
+        MenuItem::with_id(app, id, text, true, None::<&str>).map_err(tauri_err)
+    };
+    let separator = || PredefinedMenuItem::separator(app).map_err(tauri_err);
+
+    let open = item("open", "Open Clipsa")?;
+    let picker = item("picker", "Quick picker")?;
+    let monitoring = item("monitoring", monitoring_label(settings))?;
+    let settings_item = item("settings", "Settings…")?;
     #[cfg(feature = "self-update")]
-    let check_updates = MenuItem::with_id(
-        app,
-        "check_updates",
-        "Check for Updates…",
-        true,
-        None::<&str>,
-    )
-    .map_err(tauri_err)?;
-    let quit =
-        MenuItem::with_id(app, "quit", "Quit Clipsa", true, None::<&str>).map_err(tauri_err)?;
-    let mut items: Vec<&dyn IsMenuItem<Wry>> = vec![&open, &picker, &monitoring, &separator];
+    let check_updates = item("check_updates", "Check for Updates…")?;
+    let quit = item("quit", "Quit Clipsa")?;
+    let (separator1, separator2, separator3) = (separator()?, separator()?, separator()?);
+
+    let mut items: Vec<&dyn IsMenuItem<Wry>> = vec![
+        &open,
+        &picker,
+        &separator1,
+        &monitoring,
+        &separator2,
+        &settings_item,
+    ];
     #[cfg(feature = "self-update")]
     items.push(&check_updates);
-    items.push(&quit);
+    items.extend([&separator3 as &dyn IsMenuItem<Wry>, &quit]);
     let menu = Menu::with_items(app, &items).map_err(tauri_err)?;
 
     let mut tray = TrayIconBuilder::with_id("clipsa")
@@ -397,6 +415,7 @@ fn build_tray(app: &AppHandle, settings: &AppSettings) -> ClipsaResult<MenuItem<
                     error!("Toggling monitoring failed: {e}");
                 }
             }
+            "settings" => open_main_page(app, "/settings"),
             #[cfg(feature = "self-update")]
             "check_updates" => updater::show(app, true),
             "quit" => app.exit(0),
@@ -415,7 +434,27 @@ fn build_tray(app: &AppHandle, settings: &AppSettings) -> ClipsaResult<MenuItem<
         tray = tray.icon(icon.clone());
     }
     tray.build(app).map_err(tauri_err)?;
-    Ok(monitoring)
+
+    let items = TrayItems { monitoring, picker };
+    items.show_hotkey(&settings.global_hotkey);
+    Ok(items)
+}
+
+/// macOS app menu ("Clipsa" next to the Apple menu): Tauri's default menu plus
+/// "Settings… ⌘," after "About Clipsa", where Mac apps keep it. The tray's menu
+/// handler receives this item's events too.
+#[cfg(target_os = "macos")]
+fn install_app_menu(app: &AppHandle) -> tauri::Result<()> {
+    use tauri::menu::MenuItemKind;
+    let menu = Menu::default(app)?;
+    if let Some(MenuItemKind::Submenu(app_menu)) = menu.items()?.into_iter().next() {
+        let settings = MenuItem::with_id(app, "settings", "Settings…", true, Some("CmdOrCtrl+,"))?;
+        // Default: About, separator, Services, …; Settings goes in its own group.
+        app_menu.insert(&settings, 2)?;
+        app_menu.insert(&PredefinedMenuItem::separator(app)?, 3)?;
+    }
+    app.set_menu(menu)?;
+    Ok(())
 }
 
 fn show_main_window(app: &AppHandle) {
@@ -468,14 +507,22 @@ fn register_hotkey(app: &AppHandle, hotkey: &str) -> ClipsaResult<()> {
 
 /// The direct edition's login entry. Its name stays the product name that
 /// `tauri-plugin-autostart` used up to 0.1.1, so existing entries are found.
+/// Debug builds use their own entry, as they use their own data directory, so
+/// running `pnpm tauri dev` never removes or redirects the installed app's.
 #[cfg(not(feature = "app-store"))]
 fn autostart_entry(app: &AppHandle) -> ClipsaResult<platform::autostart::Autostart> {
     #[cfg(target_os = "linux")]
     let appimage = app.env().appimage.map(PathBuf::from);
     #[cfg(not(target_os = "linux"))]
     let appimage: Option<PathBuf> = None;
+    let name = &app.package_info().name;
+    let name = if cfg!(debug_assertions) {
+        format!("{name} Dev")
+    } else {
+        name.clone()
+    };
     platform::autostart::Autostart::new(
-        &app.package_info().name,
+        &name,
         &app.config().identifier,
         LAUNCHED_AT_LOGIN_ARG,
         appimage.as_deref(),
@@ -543,7 +590,10 @@ fn apply_settings_patch(
     }
     *state.settings.write().unwrap_or_else(|p| p.into_inner()) = new.clone();
 
-    let _ = state.tray_monitoring_item.set_text(monitoring_label(&new));
+    let _ = state.tray.monitoring.set_text(monitoring_label(&new));
+    if hotkey_changed {
+        state.tray.show_hotkey(&new.global_hotkey);
+    }
     if new.max_items != old.max_items || new.auto_cleanup_days != old.auto_cleanup_days {
         state.service.enforce_limits()?;
     }
@@ -754,12 +804,17 @@ fn open_main_window(app: AppHandle, path: String) -> CommandResult<()> {
     if !is_main_window_path(&path) {
         return Err(format!("Unknown page: {path}"));
     }
+    open_main_page(&app, &path);
+    Ok(())
+}
+
+/// Used by the picker, the tray and the app menu.
+fn open_main_page(app: &AppHandle, path: &str) {
     if let Some(picker) = app.get_webview_window(PICKER_WINDOW) {
         let _ = picker.hide();
     }
-    show_main_window(&app);
+    show_main_window(app);
     let _ = app.emit_to(MAIN_WINDOW, EVENT_MAIN_NAVIGATE, path);
-    Ok(())
 }
 
 #[tauri::command]

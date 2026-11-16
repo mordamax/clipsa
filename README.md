@@ -25,7 +25,7 @@ Website: **[clipsa.dev](https://clipsa.dev)** · How it compares with Maccy, Pas
 - **Skips password-manager copies** that are marked concealed or transient (macOS and Windows).
 - **Per-app exclusions:** never record copies made while a given app is in front (macOS bundle id, e.g. `com.agilebits.onepassword7`; Windows exe name, e.g. `keepass.exe`).
 - **Retention limits:** maximum item count and automatic deletion after N days. Both are enforced after every capture and once an hour.
-- **Tray icon** with Open, Quick picker, Pause/Resume monitoring, Check for Updates… (direct downloads) and Quit. Closing the window hides Clipsa to the tray.
+- **Tray icon** with Open Clipsa, Quick picker (with its shortcut), Pause/Resume monitoring, Settings…, Check for Updates… (direct downloads) and Quit. Closing the window hides Clipsa to the tray. On macOS, Settings… is also in the Clipsa menu (⌘,).
 - Single instance, optional launch at login, light/dark/system theme, compact mode.
 - **Signed auto-updates** from GitHub Releases (direct downloads and Homebrew), only if you opt in on the first-run screen or in Settings. A "Software Update" window shows the release notes and offers Install Update, Skip This Version and Remind Me Later; optionally, updates install automatically and take effect at the next launch.
 

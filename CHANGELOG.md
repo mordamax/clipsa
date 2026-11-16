@@ -11,6 +11,11 @@ release notes and in Clipsa's update window, so write it for users; see
 
 ## [0.1.2] - Unreleased
 
+### Added
+
+- Settings… in the menu bar (tray) menu and, on macOS, in the Clipsa app menu with ⌘,.
+- The tray menu shows the quick picker's shortcut and groups related items.
+
 ### Fixed
 
 - macOS: with launch at login on, System Settings → Login Items and the "Background Items Added" notification now show Clipsa instead of the developer's name.

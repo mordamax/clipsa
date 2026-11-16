@@ -26,7 +26,7 @@ Clipsa is a single Tauri 2 app. The Rust backend does clipboard monitoring, encr
 
 | Module | Responsibility |
 |---|---|
-| `lib.rs` | Builds the Tauri app: plugins (single-instance, dialog, process, opener, global-shortcut; updater with the `self-update` feature), the launch-at-login entry, tray menu (Open Clipsa, Quick picker, Pause/Resume monitoring, Check for Updates…, Quit), close-to-tray, picker window show/hide, and all `#[tauri::command]`s. |
+| `lib.rs` | Builds the Tauri app: plugins (single-instance, dialog, process, opener, global-shortcut; updater with the `self-update` feature), the launch-at-login entry, tray menu (Open Clipsa, Quick picker, Pause/Resume monitoring, Settings…, Check for Updates…, Quit), the macOS app menu (Tauri's default plus Settings… ⌘,), close-to-tray, picker window show/hide, and all `#[tauri::command]`s. |
 | `clipboard.rs` | Monitor loop. Reads the clipboard via `arboard` when the platform change signal fires, classifies the content (text, HTML + plain alt, PNG image, file list), applies the sensitive/excluded-app filters, and hands items to storage. Writes stored items back to the clipboard in their native format, and runs retention after each capture and on an hourly background thread. |
 | `crypto.rs` | Loads or creates the 256-bit master key in the OS keychain (`keyring` 3), encrypts and decrypts with AES-256-GCM using random 96-bit nonces, and derives the HMAC-SHA256 dedup key with HKDF. Debug builds use a file-based dev key. |
 | `storage.rs` | SQLite (`rusqlite`, bundled) with `secure_delete=ON`: schema migrations, insert/dedup/bump, paging and search, pins and titles, statistics, deletion, and pruning by `max_items` and `auto_cleanup_days`. |
