@@ -10,7 +10,7 @@ release notes, in Clipsa's update window and on
 [clipsa.dev/changelog](https://clipsa.dev/changelog) (run `pnpm site`), so write
 it for users; see [Release notes](./docs/deployment.md#release-notes) for the format.
 
-## [0.1.2] - Unreleased
+## [0.1.2] - 2026-11-16
 
 ### Added
 
