@@ -36,8 +36,11 @@ jobs:
   notes:
     name: Release notes
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the draft release
     outputs:
       body: ${{ steps.changelog.outputs.body }}
+      release_id: ${{ steps.draft.outputs.release_id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -91,13 +94,42 @@ jobs:
             echo "$delimiter"
           } >> "$GITHUB_OUTPUT"
 
+      # One draft for all build jobs. Letting each job find-or-create it races:
+      # parallel jobs saw no draft and created two (0.1.3), splitting the files.
+      # A re-run of the whole workflow reuses the draft; a published release
+      # (immutable) or several releases for the tag stop it.
+      - name: Create the draft release
+        id: draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BODY: ${{ steps.changelog.outputs.body }}
+        run: |
+          tag="v$(jq -r .version src-tauri/tauri.conf.json)"
+          # Lists drafts too (releases/tags/<tag> doesn't).
+          existing="$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            | jq -s --arg tag "$tag" '[.[][] | select(.tag_name == $tag) | {id, draft}]')"
+          case "$(jq length <<<"$existing")" in
+            0) id="$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases" -f tag_name="$tag" -f name="Clipsa $tag" \
+                 -f body="$BODY" -F draft=true -F prerelease=false -q .id)"
+               echo "Created draft release $id for $tag" ;;
+            1) [ "$(jq -r '.[0].draft' <<<"$existing")" = true ] || {
+                 echo "::error::$tag is already published; releases are immutable. Release a new version instead."
+                 exit 1
+               }
+               id="$(jq -r '.[0].id' <<<"$existing")"
+               echo "Reusing draft release $id for $tag" ;;
+            *) echo "::error::Several releases exist for $tag: $(jq -c . <<<"$existing"). Delete the extra drafts."
+               exit 1 ;;
+          esac
+          echo "release_id=$id" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build (${{ matrix.name }})
     needs: notes
     runs-on: ${{ matrix.platform }}
     environment: release
     permissions:
-      contents: write # create the draft release and upload assets
+      contents: write # upload assets to the draft release
     strategy:
       fail-fast: false
       matrix:
@@ -205,13 +237,10 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: v__VERSION__
-          releaseName: Clipsa v__VERSION__
-          # tauri-action also writes this into latest.json as `notes`.
-          releaseBody: ${{ needs.notes.outputs.body }}
-          releaseDraft: true
-          prerelease: false
-          uploadUpdaterJson: true
+          releaseId: ${{ needs.notes.outputs.release_id }}
+          # The publish job writes latest.json once, after all builds; merging
+          # it from parallel jobs can drop entries.
+          uploadUpdaterJson: false
           args: --config src-tauri/tauri.release.conf.json ${{ matrix.args }}
 
       # Tauri notarizes and staples the .app, then wraps it in a DMG that is only
@@ -259,10 +288,11 @@ jobs:
         run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8
 
   # Releases are immutable once published (repository setting), so everything,
-  # including the Homebrew cask, is attached while the release is a draft.
+  # including the Homebrew cask and latest.json, is attached while the release
+  # is a draft.
   publish:
     name: Publish release
-    needs: build
+    needs: [notes, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -284,29 +314,26 @@ jobs:
             packaging/homebrew/clipsa.rb.in > clipsa.rb
           gh release upload "v$version" clipsa.rb --clobber -R "$GITHUB_REPOSITORY"
 
-      # tauri-action v1 writes api.github.com asset URLs into latest.json.
-      # Anonymous API requests are limited to 60 per hour per IP, which users
-      # behind a shared address would hit, so the updater gets the regular
-      # github.com release download URLs instead (no API limit).
-      - name: Use release download URLs in latest.json
+      # The in-app updater's manifest, from the signatures the builds uploaded,
+      # with regular github.com download URLs (api.github.com asset URLs count
+      # against the 60-requests-per-hour anonymous API limit). Fails if any
+      # platform is missing, so no release ships an incomplete manifest.
+      - name: Generate the updater's latest.json
+        env:
+          NOTES: ${{ needs.notes.outputs.body }}
         run: |
-          tag="v$(jq -r .version src-tauri/tauri.conf.json)"
-          base="https://github.com/$GITHUB_REPOSITORY/releases/download/$tag/"
-          gh release download "$tag" -p latest.json -R "$GITHUB_REPOSITORY"
-          # Lists drafts too (releases/tags/<tag> doesn't).
-          names="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=30" \
-            | jq --arg tag "$tag" '[.[] | select(.tag_name == $tag)][0].assets | map({key: (.id | tostring), value: .name}) | from_entries')"
-          jq --argjson names "$names" --arg base "$base" '
-            .platforms |= with_entries(.value.url |= (
-              if test("^https://api\\.github\\.com/repos/[^/]+/[^/]+/releases/assets/[0-9]+$")
-              then (split("/") | last) as $id
-                | ($names[$id] // error("latest.json points at asset \($id), which is not in the release"))
-                | $base + @uri "\(.)"
-              else . end))' latest.json > latest.rewritten.json
-          jq -e --arg base "$base" '[.platforms[].url | startswith($base)] | all' latest.rewritten.json > /dev/null \
-            || { echo "::error::latest.json still has URLs outside $base"; jq '.platforms[].url' latest.rewritten.json; exit 1; }
-          mv latest.rewritten.json latest.json
-          jq -r '.platforms[].url' latest.json
+          version="$(jq -r .version src-tauri/tauri.conf.json)"
+          tag="v$version"
+          gh release download "$tag" -D sigs -p '*.sig' -R "$GITHUB_REPOSITORY"
+          printf '%s\n' "$NOTES" > notes.md
+          scripts/updater-manifest.sh "$version" sigs notes.md \
+            "https://github.com/$GITHUB_REPOSITORY/releases/download/$tag/" > latest.json
+          # Every file latest.json points at (the .sig exists, but is the bundle there too?).
+          missing="$(gh release view "$tag" --json assets -q '[.assets[].name]' -R "$GITHUB_REPOSITORY" \
+            | jq -r --slurpfile manifest latest.json \
+              '. as $assets | [$manifest[0].platforms[].url | split("/") | last] - $assets | unique | join(" ")')"
+          [ -z "$missing" ] || { echo "::error::latest.json points at files missing from the release: $missing"; exit 1; }
+          jq -r '.platforms | to_entries[] | "\(.key)\t\(.value.url)"' latest.json
           gh release upload "$tag" latest.json --clobber -R "$GITHUB_REPOSITORY"
 
       - name: Publish draft release
