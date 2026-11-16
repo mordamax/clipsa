@@ -1,6 +1,6 @@
 [package]
 name = "clipsa"
-version = "0.1.2"
+version = "0.1.3"
 description = "Secure cross-platform clipboard manager"
 authors = ["Clipsa contributors"]
 edition = "2021"
