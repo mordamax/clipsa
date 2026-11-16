@@ -29,7 +29,7 @@
   {disabled}
   class="focus-ring relative inline-flex shrink-0 cursor-pointer items-center rounded-full border transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-45
     {size === 'sm' ? 'h-[18px] w-[30px]' : 'h-[22px] w-[38px]'}
-    {checked ? 'border-transparent bg-accent' : 'border-line-strong bg-fg/[0.12] dark:bg-fg/[0.14]'}"
+    {checked ? 'border-transparent bg-accent' : 'border-line-strong bg-fg/12 dark:bg-fg/[0.14]'}"
   on:click={toggle}
 >
   <span

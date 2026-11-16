@@ -4,12 +4,12 @@
   import appIcon from '../../../src-tauri/icons/128x128@2x.png';
   import Icon, { type IconName } from './Icon.svelte';
   import Keys from './Keys.svelte';
-  import { buildInfo, buildInfoLoaded, ensureBuildInfo } from '$lib/stores/build';
-  import { handleLockedError } from '$lib/stores/lock';
-  import { settings, updateSettings } from '$lib/stores/settings';
-  import type { Permissions } from '$lib/types/clipboard';
-  import { errorMessage } from '$lib/utils/errors';
-  import { MOD_KEY, hotkeyParts } from '$lib/utils/format';
+  import { buildInfo, buildInfoLoaded, ensureBuildInfo } from '#lib/stores/build.ts';
+  import { handleLockedError } from '#lib/stores/lock.ts';
+  import { settings, updateSettings } from '#lib/stores/settings.ts';
+  import type { Permissions } from '#lib/types/clipboard.ts';
+  import { errorMessage } from '#lib/utils/errors.ts';
+  import { MOD_KEY, hotkeyParts } from '#lib/utils/format.ts';
 
   /** No default: the user explicitly decides whether Clipsa may go online. */
   let updates: 'yes' | 'no' | null = null;
@@ -90,15 +90,15 @@
 
 <div class="clip-overflow relative flex min-h-screen items-center justify-center px-4 py-8">
   <div
-    class="pointer-events-none absolute -left-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle,rgb(var(--c-accent)/0.18),transparent_65%)]"
+    class="pointer-events-none absolute -left-40 -top-40 h-136 w-136 rounded-full bg-[radial-gradient(circle,rgb(var(--c-accent)/0.18),transparent_65%)]"
     aria-hidden="true"
   ></div>
   <div
-    class="pointer-events-none absolute -bottom-48 -right-40 h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle,rgb(var(--c-cyan)/0.13),transparent_65%)]"
+    class="pointer-events-none absolute -bottom-48 -right-40 h-136 w-136 rounded-full bg-[radial-gradient(circle,rgb(var(--c-cyan)/0.13),transparent_65%)]"
     aria-hidden="true"
   ></div>
 
-  <section class="panel relative w-full max-w-[30rem] p-7" aria-label="Welcome to Clipsa">
+  <section class="panel relative w-full max-w-120 p-7" aria-label="Welcome to Clipsa">
     <div class="flex items-center justify-between">
       <img src={appIcon} alt="" class="h-11 w-11 drop-shadow-lg" draggable="false" />
       <ol class="flex items-center gap-1.5" aria-label="Progress">
@@ -119,7 +119,7 @@
 
     {#if step === 0}
       <p class="eyebrow mt-6">Welcome</p>
-      <h1 bind:this={heading} tabindex="-1" class="mt-1.5 text-2xl font-semibold tracking-tight text-fg outline-none">
+      <h1 bind:this={heading} tabindex="-1" class="mt-1.5 text-2xl font-semibold tracking-tight text-fg outline-hidden">
         Your clipboard, remembered.
       </h1>
       <p class="mt-2 text-sm text-muted">
@@ -140,13 +140,13 @@
       </ul>
     {:else if step === 1}
       <p class="eyebrow mt-6">Quick picker</p>
-      <h1 bind:this={heading} tabindex="-1" class="mt-1.5 text-2xl font-semibold tracking-tight text-fg outline-none">
+      <h1 bind:this={heading} tabindex="-1" class="mt-1.5 text-2xl font-semibold tracking-tight text-fg outline-hidden">
         One shortcut, from any app.
       </h1>
       {#if $settings.global_hotkey}
-        <div class="mt-5 flex items-center justify-center gap-1.5 rounded-xl border border-line bg-fg/[0.03] py-6">
+        <div class="mt-5 flex items-center justify-center gap-1.5 rounded-xl border border-line bg-fg/3 py-6">
           {#each hotkeyParts($settings.global_hotkey) as key}
-            <kbd class="kbd h-11 min-w-[2.75rem] rounded-lg px-2.5 text-lg">{key}</kbd>
+            <kbd class="kbd h-11 min-w-11 rounded-lg px-2.5 text-lg">{key}</kbd>
           {/each}
         </div>
         <p class="mt-3 text-sm text-muted">
@@ -170,7 +170,7 @@
       </p>
     {:else}
       <p class="eyebrow mt-6">Set up</p>
-      <h1 bind:this={heading} tabindex="-1" class="mt-1.5 text-2xl font-semibold tracking-tight text-fg outline-none">
+      <h1 bind:this={heading} tabindex="-1" class="mt-1.5 text-2xl font-semibold tracking-tight text-fg outline-hidden">
         A couple of choices.
       </h1>
 
@@ -192,7 +192,7 @@
                 {#if permissions.accessibility === 'granted'}
                   <span class="badge-success"><Icon name="check" size={12} /> Accessibility access granted</span>
                 {:else}
-                  <button type="button" class="btn-secondary btn-sm" on:click={requestPermissions}>Allow Accessibility…</button>
+                  <button type="button" class="btn-secondary" on:click={requestPermissions}>Allow Accessibility…</button>
                 {/if}
               </div>
             </div>
@@ -212,7 +212,7 @@
             {#each updateChoices as [value, label]}
               <label
                 class="flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm transition-colors {updates === value
-                  ? 'border-accent/60 bg-accent/[0.08] text-fg'
+                  ? 'border-accent/60 bg-accent/8 text-fg'
                   : 'border-line text-fg-2 hover:border-line-strong'}"
               >
                 <input type="radio" class="radio" name="updates" {value} bind:group={updates} />

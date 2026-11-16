@@ -2,12 +2,12 @@
   import { onDestroy, onMount, tick } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
-  import FilterChips from '$lib/components/FilterChips.svelte';
-  import Icon from '$lib/components/Icon.svelte';
-  import ItemPreview from '$lib/components/ItemPreview.svelte';
-  import ItemRow from '$lib/components/ItemRow.svelte';
-  import Keys from '$lib/components/Keys.svelte';
-  import LockScreen from '$lib/components/LockScreen.svelte';
+  import FilterChips from '#lib/components/FilterChips.svelte';
+  import Icon from '#lib/components/Icon.svelte';
+  import ItemPreview from '#lib/components/ItemPreview.svelte';
+  import ItemRow from '#lib/components/ItemRow.svelte';
+  import Keys from '#lib/components/Keys.svelte';
+  import LockScreen from '#lib/components/LockScreen.svelte';
   import {
     allowAutoUnlock,
     handleLockedError,
@@ -16,13 +16,13 @@
     refreshLockState,
     tryAutoUnlock,
     unlock
-  } from '$lib/stores/lock';
-  import { buildInfo, ensureBuildInfo } from '$lib/stores/build';
-  import { settings } from '$lib/stores/settings';
-  import { CONTENT_TYPE_LABELS, type ContentType, type HistoryPage, type ItemView } from '$lib/types/clipboard';
-  import { errorMessage } from '$lib/utils/errors';
-  import { IS_MAC, MOD_KEY } from '$lib/utils/format';
-  import { TYPE_FILTERS, groupItems } from '$lib/utils/items';
+  } from '#lib/stores/lock.ts';
+  import { buildInfo, ensureBuildInfo } from '#lib/stores/build.ts';
+  import { settings } from '#lib/stores/settings.ts';
+  import { CONTENT_TYPE_LABELS, type ContentType, type HistoryPage, type ItemView } from '#lib/types/clipboard.ts';
+  import { errorMessage } from '#lib/utils/errors.ts';
+  import { IS_MAC, MOD_KEY } from '#lib/utils/format.ts';
+  import { TYPE_FILTERS, groupItems } from '#lib/utils/items.ts';
 
   type Filter = ContentType | '' | 'pinned';
 
@@ -325,7 +325,7 @@
         aria-expanded="true"
         aria-controls="picker-list"
         aria-activedescendant={current ? `picker-item-${current.id}` : undefined}
-        class="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-[15px] text-fg placeholder:text-subtle focus:outline-none focus:ring-0"
+        class="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-[15px] text-fg placeholder:text-subtle focus:outline-hidden focus:ring-0"
         placeholder="Search clipboard history…"
         aria-label="Search clipboard history"
         autocomplete="off"
@@ -358,7 +358,7 @@
       >
         {#each groups as group (group.label)}
           <div role="group" aria-label={group.label}>
-            <div class="group-label sticky top-0 z-[1] bg-surface/95 px-2.5 pb-1 pt-2.5 backdrop-blur" role="presentation">
+            <div class="group-label sticky top-0 z-1 bg-surface/95 px-2.5 pb-1 pt-2.5 backdrop-blur-sm" role="presentation">
               {group.label}
             </div>
             {#each group.entries as { item, index } (item.id)}
@@ -370,7 +370,7 @@
                 aria-selected={index === selected}
                 tabindex="-1"
                 class="cursor-default rounded-lg px-2.5 {compact ? 'py-1' : 'py-1.5'} {index === selected
-                  ? 'bg-accent/[0.12] ring-1 ring-inset ring-accent/30 dark:bg-accent/[0.2]'
+                  ? 'bg-accent/12 ring-1 ring-inset ring-accent/30 dark:bg-accent/20'
                   : ''}"
                 on:mousedown={(e) => e.preventDefault()}
                 on:mousemove={() => (selected = index)}
@@ -429,8 +429,8 @@
     {#if errorText || hint}
       <div
         class="flex shrink-0 items-center gap-2 border-t px-4 py-1.5 text-xs {errorText
-          ? 'border-danger/25 bg-danger/[0.08] text-fg-2'
-          : 'border-warning/25 bg-warning/[0.08] text-fg-2'}"
+          ? 'border-danger/25 bg-danger/8 text-fg-2'
+          : 'border-warning/25 bg-warning/8 text-fg-2'}"
         role={errorText ? 'alert' : 'status'}
       >
         <Icon name="alert" size={13} class="shrink-0 {errorText ? 'text-danger' : 'text-warning'}" />

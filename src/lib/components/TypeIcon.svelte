@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ContentType } from '$lib/types/clipboard';
+  import type { ContentType } from '#lib/types/clipboard.ts';
 
   export let type: ContentType;
   export let size = 16;

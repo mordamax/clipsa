@@ -1,8 +1,8 @@
 import { get, writable } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { LockState } from '$lib/types/lock';
-import { errorMessage } from '$lib/utils/errors';
+import type { LockState } from '#lib/types/lock.ts';
+import { errorMessage } from '#lib/utils/errors.ts';
 
 /** Exact rejection of every protected command while the app is locked. */
 export const LOCKED_MESSAGE = 'Clipsa is locked';

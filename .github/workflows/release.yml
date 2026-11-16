@@ -39,7 +39,7 @@ jobs:
     outputs:
       body: ${{ steps.changelog.outputs.body }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -119,7 +119,7 @@ jobs:
             args: ''
             rust_targets: ''
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -137,14 +137,17 @@ jobs:
             libdbus-1-dev
 
       - name: Install pnpm
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 9
 
       - name: Setup Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
+          # setup-node enables caching on its own when package.json names a
+          # package manager; release builds use no caches.
+          package-manager-cache: false
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable branch
@@ -196,7 +199,7 @@ jobs:
 
       - name: Build and upload
         id: tauri
-        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -208,7 +211,7 @@ jobs:
           releaseBody: ${{ needs.notes.outputs.body }}
           releaseDraft: true
           prerelease: false
-          includeUpdaterJson: true
+          uploadUpdaterJson: true
           args: --config src-tauri/tauri.release.conf.json ${{ matrix.args }}
 
       # Tauri notarizes and staples the .app, then wraps it in a DMG that is only
@@ -266,7 +269,7 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -280,6 +283,31 @@ jobs:
           sed -e "s/@VERSION@/$version/" -e "s/@SHA256_ARM@/$arm/" -e "s/@SHA256_INTEL@/$intel/" \
             packaging/homebrew/clipsa.rb.in > clipsa.rb
           gh release upload "v$version" clipsa.rb --clobber -R "$GITHUB_REPOSITORY"
+
+      # tauri-action v1 writes api.github.com asset URLs into latest.json.
+      # Anonymous API requests are limited to 60 per hour per IP, which users
+      # behind a shared address would hit, so the updater gets the regular
+      # github.com release download URLs instead (no API limit).
+      - name: Use release download URLs in latest.json
+        run: |
+          tag="v$(jq -r .version src-tauri/tauri.conf.json)"
+          base="https://github.com/$GITHUB_REPOSITORY/releases/download/$tag/"
+          gh release download "$tag" -p latest.json -R "$GITHUB_REPOSITORY"
+          # Lists drafts too (releases/tags/<tag> doesn't).
+          names="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=30" \
+            | jq --arg tag "$tag" '[.[] | select(.tag_name == $tag)][0].assets | map({key: (.id | tostring), value: .name}) | from_entries')"
+          jq --argjson names "$names" --arg base "$base" '
+            .platforms |= with_entries(.value.url |= (
+              if test("^https://api\\.github\\.com/repos/[^/]+/[^/]+/releases/assets/[0-9]+$")
+              then (split("/") | last) as $id
+                | ($names[$id] // error("latest.json points at asset \($id), which is not in the release"))
+                | $base + @uri "\(.)"
+              else . end))' latest.json > latest.rewritten.json
+          jq -e --arg base "$base" '[.platforms[].url | startswith($base)] | all' latest.rewritten.json > /dev/null \
+            || { echo "::error::latest.json still has URLs outside $base"; jq '.platforms[].url' latest.rewritten.json; exit 1; }
+          mv latest.rewritten.json latest.json
+          jq -r '.platforms[].url' latest.json
+          gh release upload "$tag" latest.json --clobber -R "$GITHUB_REPOSITORY"
 
       - name: Publish draft release
         run: gh release edit "v$(jq -r .version src-tauri/tauri.conf.json)" --draft=false --latest -R "$GITHUB_REPOSITORY"
@@ -296,7 +324,7 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 

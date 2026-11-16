@@ -1,8 +1,8 @@
 import { get, writable } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
-import type { HistoryPage, HistoryQuery, ItemView, Stats } from '$lib/types/clipboard';
-import { handleLockedError, onLockChange } from '$lib/stores/lock';
-import { errorMessage } from '$lib/utils/errors';
+import type { HistoryPage, HistoryQuery, ItemView, Stats } from '#lib/types/clipboard.ts';
+import { handleLockedError, onLockChange } from '#lib/stores/lock.ts';
+import { errorMessage } from '#lib/utils/errors.ts';
 
 export const items = writable<ItemView[]>([]);
 export const total = writable(0);
