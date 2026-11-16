@@ -12,7 +12,7 @@
 use std::path::PathBuf;
 
 use aes_gcm::{
-    aead::{Aead, AeadCore, KeyInit, OsRng},
+    aead::{common::getrandom, Aead, Generate, KeyInit},
     Aes256Gcm, Nonce,
 };
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
@@ -142,7 +142,7 @@ impl CryptoManager {
             Some(secret) => Self::deserialize_key(&secret)?,
             None => {
                 let mut key = Zeroizing::new([0u8; KEY_LEN]);
-                aes_gcm::aead::rand_core::RngCore::fill_bytes(&mut OsRng, key.as_mut());
+                getrandom::fill(key.as_mut()).expect("OS random number generator failed");
                 let mut secret = Self::serialize_key(&key);
                 let stored = store.store(&secret);
                 secret.zeroize();
@@ -184,7 +184,7 @@ impl CryptoManager {
 
     /// Encrypt `data`; output layout is `nonce(12) || ciphertext || tag(16)`.
     pub fn encrypt(&self, data: &[u8]) -> ClipsaResult<Vec<u8>> {
-        let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
+        let nonce = Nonce::generate();
         let sealed = self
             .cipher
             .encrypt(&nonce, data)
@@ -201,7 +201,10 @@ impl CryptoManager {
         }
         let (nonce, sealed) = data.split_at(NONCE_LEN);
         self.cipher
-            .decrypt(Nonce::from_slice(nonce), sealed)
+            .decrypt(
+                <&Nonce<_>>::try_from(nonce).map_err(|e| ClipsaError::Decryption(e.to_string()))?,
+                sealed,
+            )
             .map_err(|e| ClipsaError::Decryption(e.to_string()))
     }
 
