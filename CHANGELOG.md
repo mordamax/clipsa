@@ -6,8 +6,9 @@ All notable changes to Clipsa are documented here. The format follows
 
 Each release has a section headed `## [X.Y.Z] - YYYY-MM-DD` (`Unreleased` in
 place of the date until it ships). That section is published as the GitHub
-release notes and in Clipsa's update window, so write it for users; see
-[Release notes](./docs/deployment.md#release-notes) for the format.
+release notes, in Clipsa's update window and on
+[clipsa.dev/changelog](https://clipsa.dev/changelog) (run `pnpm site`), so write
+it for users; see [Release notes](./docs/deployment.md#release-notes) for the format.
 
 ## [0.1.2] - Unreleased
 

@@ -583,6 +583,10 @@ kbd {
   letter-spacing: 0.01em;
 }
 
+.hero-meta a {
+  color: inherit;
+}
+
 .hero-brew {
   display: inline-flex;
   flex-wrap: wrap;
@@ -2321,6 +2325,45 @@ thead .ours {
 
 .summary p {
   margin: 0;
+}
+
+.prose h3 {
+  margin: 1.6em 0 0.4em;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.prose code {
+  font-size: 0.9em;
+}
+
+.changelog .release {
+  padding-top: 8px;
+  scroll-margin-top: 96px;
+}
+
+.changelog .release + .release {
+  margin-top: 2.4em;
+  border-top: 1px solid var(--border);
+}
+
+.changelog .release h2 {
+  margin: 1.6em 0 0.2em;
+}
+
+.changelog .release .meta {
+  margin-bottom: 0.8em;
+}
+
+.release-line {
+  margin-top: 10px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.82rem;
 }
 
 @media (max-width: 900px) {

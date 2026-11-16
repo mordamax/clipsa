@@ -73,9 +73,10 @@ Notes flow: `CHANGELOG.md` → **notes** job → tauri-action `releaseBody` → 
 ### Cutting a release
 
 1. Add a non-empty, dated section for the version to `CHANGELOG.md`.
-2. Set the same version in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `package.json`. Commit to `master`.
-3. `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag must equal `v` + the version in `tauri.conf.json`.
-4. Wait for the workflow to finish, then check the published release notes and assets.
+2. Set the same version in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `package.json`.
+3. `pnpm site` to regenerate the site's changelog page and latest version from `CHANGELOG.md` (see [Website](#website-vercel)). Commit everything to `master`.
+4. `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag must equal `v` + the version in `tauri.conf.json`. The workflow stops before building if the site wasn't regenerated.
+5. Wait for the workflow to finish, check the published release notes and assets, then deploy the site.
 
 ### Secrets
 
@@ -103,8 +104,10 @@ Windows installers are not code-signed; SmartScreen may warn until the app build
 
 The static site in `site/` is deployed to the Vercel project `makhq/clipsa`, whose root directory is `site/` (no framework, no build or install step). `site/vercel.json` sets clean URLs and security headers (CSP without any third-party origin, `no-referrer`, `nosniff`). The repo-root `.vercelignore` uploads only `site/` for CLI deploys.
 
-- Deploy manually: `npx vercel@latest deploy --prod --scope makhq` from the repo root (after `vercel link --project clipsa --scope makhq` once).
-- Automatic deploys: connect the GitHub repository to the project in the Vercel dashboard (Settings → Git); pushes to `master` then deploy `site/`.
+The release-dependent parts are generated from `CHANGELOG.md` by `scripts/build-site.mjs` (`pnpm site`) and committed: `site/changelog.html` (every dated release; an `Unreleased` section is never published) and the latest version and date wherever a page has `<!-- clipsa:version -->` / `<!-- clipsa:date -->` markers. The pages load nothing at runtime, so the CSP and the privacy policy's "no scripts, no third-party requests" stay true. The **Site** workflow fails when the committed pages don't match `CHANGELOG.md`.
+
+- Deploy manually: `npx vercel@latest deploy --prod --scope makhq` from the repo root (after `vercel link --project clipsa --scope makhq` once). Deploy after the release is published, so the site doesn't announce a version whose downloads aren't live yet.
+- Automatic deploys: connect the GitHub repository to the project in the Vercel dashboard (Settings → Git); pushes to `master` then deploy `site/`. With that, push the release commit only once you're ready for the site to show the new version, or keep deploying by hand.
 - Keep Vercel Web Analytics and Speed Insights off; the privacy policy promises no trackers.
 
 ## Mac App Store

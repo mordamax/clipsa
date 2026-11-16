@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Changelog · Clipsa</title>
+  <meta name="description" content="What changed in each Clipsa release.">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#08090d">
+  <link rel="canonical" href="https://clipsa.dev/changelog">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="nav" aria-label="Main">
+      <a class="brand" href="./">
+        <img src="assets/icon.svg" alt="" width="28" height="28">
+        Clipsa
+      </a>
+      <ul class="nav-links">
+        <li><a href="./#features">Features</a></li>
+        <li><a href="./#privacy">Privacy</a></li>
+        <li><a href="compare">Compare</a></li>
+        <li><a href="./#faq">FAQ</a></li>
+        <li><a href="https://github.com/mordamax/clipsa">GitHub</a></li>
+      </ul>
+      <a class="btn btn-primary btn-sm" href="./#download">Download</a>
+      <details class="nav-menu">
+        <summary aria-label="Menu">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </summary>
+        <ul>
+          <li><a href="./#features">Features</a></li>
+          <li><a href="./#privacy">Privacy</a></li>
+          <li><a href="compare">Compare</a></li>
+          <li><a href="./#faq">FAQ</a></li>
+          <li><a href="https://github.com/mordamax/clipsa">GitHub</a></li>
+        </ul>
+      </details>
+    </nav>
+  </header>
+
+  <main id="main" class="container doc">
+    <aside class="toc" aria-labelledby="toc-title">
+      <h2 id="toc-title">Releases</h2>
+      <ol>
+        <!-- clipsa:toc -->
+        <li><a href="#v0.1.1">Clipsa 0.1.1</a></li>
+        <li><a href="#v0.1.0">Clipsa 0.1.0</a></li>
+        <!-- /clipsa:toc -->
+      </ol>
+    </aside>
+
+    <article class="prose changelog">
+      <h1>Changelog</h1>
+      <p class="meta">Latest: Clipsa <!-- clipsa:version -->0.1.1<!-- /clipsa:version -->, <!-- clipsa:date --><time datetime="2026-11-15">15 November 2026</time><!-- /clipsa:date --></p>
+      <p>What changed in each release. Clipsa shows the same notes in its update window before you install an update. Downloads for every version are on <a href="https://github.com/mordamax/clipsa/releases">GitHub Releases</a>.</p>
+
+      <!-- clipsa:releases -->
+      <section class="release" id="v0.1.1" aria-labelledby="v0.1.1-title">
+        <h2 id="v0.1.1-title">Clipsa 0.1.1</h2>
+        <p class="meta"><time datetime="2026-11-15">15 November 2026</time> · <a href="https://github.com/mordamax/clipsa/releases/tag/v0.1.1">Release on GitHub</a></p>
+        <h3>Changed</h3>
+        <ul>
+          <li>Maintenance release with no changes to features. Releases are now built by a hardened pipeline: pinned build tools, signing keys available only to release builds, and published releases that can't be modified afterwards.</li>
+        </ul>
+      </section>
+
+      <section class="release" id="v0.1.0" aria-labelledby="v0.1.0-title">
+        <h2 id="v0.1.0-title">Clipsa 0.1.0</h2>
+        <p class="meta"><time datetime="2026-11-15">15 November 2026</time> · <a href="https://github.com/mordamax/clipsa/releases/tag/v0.1.0">Release on GitHub</a></p>
+        <p>First public release.</p>
+        <h3>Added</h3>
+        <ul>
+          <li>Clipboard history for text, rich text, images and copied files. Copying an item again puts it back on the clipboard in its original format.</li>
+          <li>Every item is encrypted on your device with AES-256-GCM, using a key kept in your system keychain (macOS Keychain, Windows Credential Manager or Linux Secret Service).</li>
+          <li>Quick picker on a global shortcut (<code>Cmd/Ctrl+Shift+V</code> by default): type to filter, press Enter to paste straight into the app you were using, <code>Shift+Enter</code> to paste the opposite way (plain text or formatted), or <code>Cmd/Ctrl+1</code>–<code>9</code> to paste one of the first nine items. Items are grouped by day, <code>Tab</code> switches between type filters, and a preview pane shows the selected item in full with its details. Buttons in the picker, or <code>Cmd/Ctrl+O</code> and <code>Cmd/Ctrl+,</code>, open the full Clipsa window and Settings.</li>
+          <li>A history window with search, type filters, a list grouped by day and a detail pane for the selected item. Clicking an item copies it.</li>
+          <li>Pin items to keep them forever, give them names, and write reusable text snippets. Pinned items appear first in the quick picker.</li>
+          <li>Paste as plain text by default if you prefer.</li>
+          <li>App lock on macOS and Windows: require Touch ID, your login password or Windows Hello to see your history after Clipsa has been in the background for a while.</li>
+          <li>Copies that password managers mark as secret are never saved, and you can exclude whole apps.</li>
+          <li>Retention limits: keep at most a chosen number of items and delete items older than a chosen number of days.</li>
+          <li>Tray icon to open Clipsa, pause or resume recording, and quit. Closing the window keeps Clipsa running in the tray.</li>
+          <li>Launch at login, light/dark/system theme and a compact layout.</li>
+          <li>Signed automatic updates for downloads from GitHub and Homebrew, only if you opt in. A &quot;Software Update&quot; window shows what's new and lets you install now, skip a version or be reminded later, or have updates installed automatically.</li>
+          <li>A Mac App Store edition. It runs in Apple's sandbox, so Enter in the quick picker copies the item for you to paste with ⌘V, updates come from the App Store, and launch at login uses macOS Login Items.</li>
+        </ul>
+      </section>
+      <!-- /clipsa:releases -->
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="./"><img src="assets/icon.svg" alt="" width="28" height="28"> Clipsa</a>
+        <p>The private clipboard manager for macOS, Windows and Linux.</p>
+        <p class="footer-copy">© 2025–2026 Clipsa contributors</p>
+      </div>
+      <nav aria-labelledby="footer-product">
+        <h2 id="footer-product">Product</h2>
+        <ul>
+          <li><a href="./#features">Features</a></li>
+          <li><a href="./#privacy">Privacy &amp; security</a></li>
+          <li><a href="compare">Compare</a></li>
+          <li><a href="./#download">Download</a></li>
+          <li><a href="./#faq">FAQ</a></li>
+        </ul>
+      </nav>
+      <nav aria-labelledby="footer-project">
+        <h2 id="footer-project">Project</h2>
+        <ul>
+          <li><a href="https://github.com/mordamax/clipsa">GitHub</a></li>
+          <li><a href="https://github.com/mordamax/clipsa/blob/master/docs/development-roadmap.md">Roadmap</a></li>
+          <li><a href="changelog" aria-current="page">Changelog</a></li>
+        </ul>
+      </nav>
+      <nav aria-labelledby="footer-legal">
+        <h2 id="footer-legal">Legal</h2>
+        <ul>
+          <li><a href="privacy">Privacy policy</a></li>
+          <li><a href="https://github.com/mordamax/clipsa/blob/master/LICENSE">MIT license</a></li>
+        </ul>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

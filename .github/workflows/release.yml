@@ -57,6 +57,17 @@ jobs:
             exit 1
           fi
 
+      # clipsa.dev shows the latest version and the changelog from committed,
+      # generated pages; a release must not ship without them.
+      - name: Check that the site lists this release
+        run: |
+          version="$(jq -r .version src-tauri/tauri.conf.json)"
+          node scripts/build-site.mjs --check
+          grep -q "id=\"v$version\"" site/changelog.html || {
+            echo "::error file=CHANGELOG.md::site/changelog.html has no entry for $version. Date its CHANGELOG section and run pnpm site."
+            exit 1
+          }
+
       - name: Extract this version's CHANGELOG section
         id: changelog
         run: |
