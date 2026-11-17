@@ -11,7 +11,8 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch",
     "tauri": "tauri",
     "install:mac": "scripts/install-macos.sh",
-    "site": "node scripts/build-site.mjs"
+    "site": "node scripts/build-site.mjs",
+    "stats": "node scripts/download-stats.mjs"
   },
   "license": "MIT",
   "engines": {

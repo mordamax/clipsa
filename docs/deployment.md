@@ -79,6 +79,8 @@ Notes flow: `CHANGELOG.md` → **notes** job → tauri-action `releaseBody` → 
 5. Tag the merge commit on `master`: `git pull && git tag vX.Y.Z && git push origin vX.Y.Z`. The tag must equal `v` + the version in `tauri.conf.json`. The workflow stops before building if the site wasn't regenerated.
 6. Wait for the workflow to finish and check the published release notes and assets. Its publish job then deploys the website (see below).
 
+Download counts come from GitHub Releases, which serve every download (website, direct links, Homebrew, in-app updates): `pnpm stats` prints them per version, split into macOS/Windows/Linux installers, macOS in-app updates and update checks (`latest.json` fetches). Neither the app nor the website tracks anything.
+
 ### Secrets
 
 Release secrets live in the GitHub environment **`release`** (Settings → Environments), which accepts only jobs running from tags matching `v*.*.*`. No secret is stored at repository level, so workflows on branches and pull requests can't read them. See [Security → Release pipeline](./security.md#release-pipeline).
