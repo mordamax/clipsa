@@ -15,6 +15,7 @@ it for users; see [Release notes](./docs/deployment.md#release-notes) for the fo
 ### Changed
 
 - macOS: without the Accessibility permission, Enter in the quick picker now copies the item, closes the picker and takes you back to your app, so you can press ⌘V right away, instead of showing a message and staying open. The picker's footer shows "Copy then ⌘V" while pasting isn't possible.
+- The website clipsa.dev moved to Cloudflare Pages. Its [privacy policy](https://clipsa.dev/privacy) now names Cloudflare as the host, which shows the project aggregate traffic statistics (requests, visitors, countries). The website still sets no cookies and runs no scripts, and the app still collects nothing.
 
 ## [0.1.3] - 2026-11-16
 

@@ -1,0 +1,71 @@
+name: Deploy site
+
+# Deploys site/ to Cloudflare Pages (project `clipsa`, served at clipsa.dev).
+# The pages show the latest version and its download links, so a deploy waits
+# until that version's GitHub release is published: merging a release PR skips
+# here, and the release workflow starts this one after publishing.
+on:
+  push:
+    branches: [master]
+    paths: ['site/**']
+  workflow_dispatch:
+
+concurrency:
+  group: site-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to Cloudflare Pages
+    runs-on: ubuntu-latest
+    environment: site
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check that the announced release is published
+        id: gate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="$(grep -oE 'clipsa:version -->[0-9][0-9.]*' site/index.html | head -1 | sed 's/.*-->//')"
+          [ -n "$version" ] || { echo "::error::No version marker in site/index.html"; exit 1; }
+          # releases/tags/<tag> only returns published releases, never drafts.
+          if gh api "repos/$GITHUB_REPOSITORY/releases/tags/v$version" --silent 2>/dev/null; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::v$version is not published yet; the release workflow deploys the site after publishing."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install pnpm
+        if: steps.gate.outputs.deploy == 'true'
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: 9
+
+      - name: Setup Node
+        if: steps.gate.outputs.deploy == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      # wrangler comes from the lockfile (pinned, integrity-checked); this job
+      # holds the Cloudflare token.
+      - name: Install wrangler
+        if: steps.gate.outputs.deploy == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy
+        if: steps.gate.outputs.deploy == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          pnpm exec wrangler pages deploy site --project-name=clipsa --branch=master \
+            --commit-hash="$GITHUB_SHA" --commit-message="$(git log -1 --format=%s)" --commit-dirty=true
