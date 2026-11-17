@@ -296,6 +296,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write # start the Site workflow
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -338,6 +339,11 @@ jobs:
 
       - name: Publish draft release
         run: gh release edit "v$(jq -r .version src-tauri/tauri.conf.json)" --draft=false --latest -R "$GITHUB_REPOSITORY"
+
+      # The site shows the latest version and links to its downloads, so it is
+      # deployed only now (the Site workflow skips versions that aren't published).
+      - name: Deploy the website
+        run: gh workflow run site.yml --ref master -R "$GITHUB_REPOSITORY"
 
   # Pushes the cask with a short-lived token from the Clipsa Homebrew GitHub
   # App, which is installed only on mordamax/homebrew-tap (contents: write).

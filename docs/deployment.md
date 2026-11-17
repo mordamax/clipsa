@@ -74,10 +74,10 @@ Notes flow: `CHANGELOG.md` → **notes** job → tauri-action `releaseBody` → 
 
 1. On a branch, add a non-empty, dated section for the version to `CHANGELOG.md`.
 2. Set the same version in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `package.json` (and `cargo update -p clipsa` for `Cargo.lock`).
-3. `pnpm site` to regenerate the site's changelog page and latest version from `CHANGELOG.md` (see [Website](#website-vercel)).
+3. `pnpm site` to regenerate the site's changelog page and latest version from `CHANGELOG.md` (see [Website](#website-cloudflare-pages)).
 4. Open a PR (`chore: release X.Y.Z`), wait for CI, merge it.
 5. Tag the merge commit on `master`: `git pull && git tag vX.Y.Z && git push origin vX.Y.Z`. The tag must equal `v` + the version in `tauri.conf.json`. The workflow stops before building if the site wasn't regenerated.
-6. Wait for the workflow to finish, check the published release notes and assets, then deploy the site.
+6. Wait for the workflow to finish and check the published release notes and assets. Its publish job then deploys the website (see below).
 
 ### Secrets
 
@@ -101,15 +101,19 @@ macOS releases must be signed with a Developer ID and notarized; the workflow fa
 
 Windows installers are not code-signed; SmartScreen may warn until the app builds reputation.
 
-## Website (Vercel)
+## Website (Cloudflare Pages)
 
-The static site in `site/` is deployed to the Vercel project `makhq/clipsa`, whose root directory is `site/` (no framework, no build or install step). `site/vercel.json` sets clean URLs and security headers (CSP without any third-party origin, `no-referrer`, `nosniff`). The repo-root `.vercelignore` uploads only `site/` for CLI deploys.
+The static site in `site/` is served from the Cloudflare Pages project `clipsa` at clipsa.dev (DNS on Cloudflare; the domain is registered at Vercel with Cloudflare's nameservers). No framework, build or install step: the files are uploaded as they are. Pages serves `privacy.html` at `/privacy` (clean URLs). `site/_headers` sets the security headers (CSP without any third-party origin, `no-referrer`, `nosniff`) and caching for `/assets/`.
 
 The release-dependent parts are generated from `CHANGELOG.md` by `scripts/build-site.mjs` (`pnpm site`) and committed: `site/changelog.html` (every dated release; an `Unreleased` section is never published) and the latest version and date wherever a page has `<!-- clipsa:version -->` / `<!-- clipsa:date -->` markers. The pages load nothing at runtime, so the CSP and the privacy policy's "no scripts, no third-party requests" stay true. CI's **Site** job fails when the committed pages don't match `CHANGELOG.md`.
 
-- Deploy manually: `npx vercel@latest deploy --prod --scope makhq` from the repo root (after `vercel link --project clipsa --scope makhq` once). Deploy after the release is published, so the site doesn't announce a version whose downloads aren't live yet.
-- Automatic deploys: connect the GitHub repository to the project in the Vercel dashboard (Settings → Git); pushes to `master` then deploy `site/`. With that, push the release commit only once you're ready for the site to show the new version, or keep deploying by hand.
-- Keep Vercel Web Analytics and Speed Insights off; the privacy policy promises no trackers.
+Deploys (`.github/workflows/site.yml`, environment `site` with the `CLOUDFLARE_API_TOKEN` secret and `CLOUDFLARE_ACCOUNT_ID` variable, `master` only):
+
+- Every push to `master` that changes `site/` deploys, **unless** the version the pages announce isn't published on GitHub yet. A release PR therefore doesn't deploy; the release workflow's publish job starts the deploy once the downloads are live.
+- By hand: Actions → **Deploy site** → Run workflow, or locally `pnpm exec wrangler pages deploy site --project-name=clipsa --branch=master` after `pnpm exec wrangler login`.
+- wrangler is a pinned dev dependency, so CI installs it from the lockfile.
+
+Traffic statistics come from Cloudflare's network (Analytics in the Cloudflare dashboard: requests, visitors, countries, bandwidth). Keep Cloudflare Web Analytics (the JavaScript beacon) off unless the privacy policy and CSP are updated with it; download counts come from GitHub (`pnpm stats`).
 
 ## Mac App Store
 
