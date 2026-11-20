@@ -1,0 +1,27 @@
+name: Site preview (build)
+
+# First half of the PR previews of clipsa.dev (see site-preview.yml): packs the
+# PR's site/ as an artifact. Runs the PR's code, so it gets no secrets and a
+# read-only token; site-preview.yml deploys the artifact from master's code.
+on:
+  pull_request:
+    branches: [master]
+    paths: ['site/**']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Pack site/
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site
+          path: site/
+          retention-days: 1
