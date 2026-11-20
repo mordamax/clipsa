@@ -192,9 +192,9 @@ These live in the GitHub environment **`appstore`**, which accepts only runs fro
 
 | Secret | Value |
 |---|---|
-| `APPSTORE_CERTIFICATE` | base64 of the Apple Distribution `.p12` (`openssl base64 -A -in dist.p12`). It is passed to the Tauri bundler as `APPLE_CERTIFICATE`. |
+| `APPSTORE_CERTIFICATE` | base64 of the app distribution `.p12` (`openssl base64 -A -in dist.p12`): "Apple Distribution" or "3rd Party Mac Developer Application" (what Apple issues as *Mac App Distribution*) |
 | `APPSTORE_CERTIFICATE_PASSWORD` | Password of that `.p12` |
-| `APPSTORE_SIGNING_IDENTITY` | e.g. `Apple Distribution: Your Name (ABCDE12345)` |
+| `APPSTORE_SIGNING_IDENTITY` | The certificate's common name, e.g. `3rd Party Mac Developer Application: Your Name (ABCDE12345)` |
 | `APPSTORE_INSTALLER_CERTIFICATE` | base64 of the Mac Installer Distribution `.p12` |
 | `APPSTORE_INSTALLER_CERTIFICATE_PASSWORD` | Password of that `.p12` |
 | `APPSTORE_INSTALLER_IDENTITY` | e.g. `3rd Party Mac Developer Installer: Your Name (ABCDE12345)` (the certificate's common name) |
@@ -214,8 +214,8 @@ Actions → **Mac App Store** → Run workflow. It takes these inputs:
 Steps:
 
 1. Write the entitlements and the provisioning profile.
-2. Import the installer certificate into a temporary keychain.
-3. Run `pnpm tauri build --bundles app --target universal-apple-darwin --config src-tauri/tauri.appstore.conf.json`, signed with the Apple Distribution identity. No notarization variables are set: App Store builds are not notarized.
+2. Import both certificates and Apple's WWDR intermediates into a temporary keychain, and check that both identities are valid there.
+3. Run `pnpm tauri build --bundles app --target universal-apple-darwin --config src-tauri/tauri.appstore.conf.json`, signed with `APPLE_SIGNING_IDENTITY` from that keychain. `APPLE_CERTIFICATE` is not used: the Tauri bundler only recognizes some certificate names ("Apple Distribution:", "Developer ID Application:", …) when it imports one itself, and fails with "failed to resolve signing identity" for "3rd Party Mac Developer Application:". No notarization variables are set: App Store builds are not notarized.
 4. Verify the signature, entitlements, profile, architectures and Info.plist.
 5. Run `xcrun productbuild --sign "$APPLE_INSTALLER_IDENTITY" --component Clipsa.app /Applications Clipsa.pkg`.
 6. Run `xcrun altool --upload-app --type macos --apiKey … --apiIssuer …`. The key is written to `~/.appstoreconnect/private_keys/AuthKey_<id>.p8` and removed afterwards.
