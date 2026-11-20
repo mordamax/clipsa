@@ -1,0 +1,95 @@
+name: Site preview
+
+# Deploys a pull request's site/ to a Cloudflare Pages preview at
+# https://pr-<number>.clipsa-bhi.pages.dev (clipsa-bhi is the Pages project's
+# subdomain) and reports it on the PR: a comment with the link, edited on
+# every push, and "Site preview" in the checks (scripts/site-preview-report.sh).
+# Previews are served with X-Robots-Tag: noindex; only deploys to the
+# production branch (site.yml) reach clipsa.dev.
+#
+# The Cloudflare token can deploy production too, so no PR code runs with it:
+# site-preview-build.yml packs the PR's site/ without secrets, and this
+# workflow, which always runs from master (workflow_run), installs wrangler
+# from master's lockfile and only uploads those files. PRs from forks get no
+# preview, so nobody outside the repository can publish pages under
+# clipsa-bhi.pages.dev.
+on:
+  workflow_run:
+    workflows: ['Site preview (build)']
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy preview
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.pull_requests[0].number
+    runs-on: ubuntu-latest
+    environment: site-preview
+    permissions:
+      contents: read
+      actions: read # download the build run's artifact
+      statuses: write # "Site preview" in the PR's checks
+      pull-requests: write # the preview comment on the PR
+    concurrency:
+      group: site-preview-${{ github.event.workflow_run.pull_requests[0].number }}
+      cancel-in-progress: true
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PR: ${{ github.event.workflow_run.pull_requests[0].number }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      # master, not the PR: this job holds the token.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site
+          path: ${{ runner.temp }}/preview
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Pages runs _worker.js (and applies _routes.json) from the uploaded
+      # directory as server code; a preview is static files only.
+      - name: Refuse server code
+        run: |
+          if [ -e "$RUNNER_TEMP/preview/_worker.js" ] || [ -e "$RUNNER_TEMP/preview/_routes.json" ]; then
+            echo "::error::Site previews deploy static files only; remove _worker.js / _routes.json from site/."
+            exit 1
+          fi
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Install wrangler
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          pnpm exec wrangler pages deploy "$RUNNER_TEMP/preview" --project-name=clipsa --branch="pr-$PR" \
+            --commit-hash="$HEAD_SHA" --commit-message="PR #$PR" --commit-dirty=true
+
+      - name: Report the preview on the PR
+        run: scripts/site-preview-report.sh success
+
+      - name: Report a failed preview on the PR
+        if: failure()
+        run: scripts/site-preview-report.sh failure
