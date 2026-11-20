@@ -262,7 +262,7 @@
     refreshCanPaste();
     errorText = '';
     selected = 0;
-    // Every opening starts from the latest copies, not the previous search.
+    // Every opening starts with an empty search, not the previous one.
     search = '';
     clearTimeout(searchTimer);
     await refreshLockState();
