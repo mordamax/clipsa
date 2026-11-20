@@ -56,7 +56,7 @@
         <h1 id="hero-title">Clipboard history that stays private</h1>
         <p class="hero-lead">Clipsa remembers what you copy so you can find it and paste it again from the keyboard. Your history stays on your device, every item is encrypted, and nothing is sent anywhere.</p>
         <div class="button-row">
-          <a class="btn btn-primary btn-lg" href="https://github.com/mordamax/clipsa/releases/latest">
+          <a class="btn btn-primary btn-lg" href="#download">
             <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
             Download Clipsa
           </a>
@@ -434,7 +434,7 @@
         <ul class="platforms">
           <li class="card platform">
             <h3>macOS</h3>
-            <p class="platform-files"><code>.dmg</code> for Apple Silicon and Intel</p>
+            <p class="platform-files">Signed and notarized <code>.dmg</code></p>
             <ul class="caps">
               <li class="cap-yes">Text, rich text, images and files</li>
               <li class="cap-yes">Skips password-manager copies</li>
@@ -443,15 +443,16 @@
               <li class="cap-yes">App lock with Touch ID or login password</li>
               <li class="cap-yes">Key stored in the Keychain</li>
             </ul>
-            <a class="btn btn-primary" href="https://github.com/mordamax/clipsa/releases/latest">Download for macOS</a>
+            <a class="btn btn-primary" href="download/macos">Download for Apple Silicon</a>
             <div class="platform-foot">
+              <p class="platform-alt">Intel Mac? <a href="download/macos-intel">Download for Intel</a></p>
               <p class="platform-alt">Or with Homebrew:</p>
               <pre><code>brew install --cask mordamax/tap/clipsa</code></pre>
             </div>
           </li>
           <li class="card platform">
             <h3>Windows</h3>
-            <p class="platform-files"><code>.msi</code> or NSIS <code>.exe</code> installer</p>
+            <p class="platform-files"><code>.exe</code> installer or <code>.msi</code> package</p>
             <ul class="caps">
               <li class="cap-yes">Text, rich text, images and files</li>
               <li class="cap-yes">Skips password-manager copies</li>
@@ -460,14 +461,15 @@
               <li class="cap-yes">App lock with Windows Hello <span>(must be set up)</span></li>
               <li class="cap-yes">Key stored in Credential Manager</li>
             </ul>
-            <a class="btn btn-primary" href="https://github.com/mordamax/clipsa/releases/latest">Download for Windows</a>
+            <a class="btn btn-primary" href="download/windows">Download for Windows</a>
             <div class="platform-foot">
+              <p class="platform-alt">Deploying to managed PCs? <a href="download/windows-msi">Download the .msi</a></p>
               <p class="platform-note">Windows builds are not code-signed yet, so SmartScreen may show a warning.</p>
             </div>
           </li>
           <li class="card platform">
             <h3>Linux</h3>
-            <p class="platform-files"><code>.AppImage</code>, <code>.deb</code> or <code>.rpm</code></p>
+            <p class="platform-files"><code>.deb</code>, <code>.rpm</code> or <code>.AppImage</code></p>
             <ul class="caps">
               <li class="cap-yes">Text, rich text, images and files</li>
               <li class="cap-yes">Pastes into the previous app on X11 <span>(Wayland compositors may block simulated keystrokes)</span></li>
@@ -476,13 +478,14 @@
               <li class="cap-no"><span class="sr-only">Not available: </span>Per-app exclusion</li>
               <li class="cap-no"><span class="sr-only">Not available: </span>App lock</li>
             </ul>
-            <a class="btn btn-primary" href="https://github.com/mordamax/clipsa/releases/latest">Download for Linux</a>
+            <a class="btn btn-primary" href="download/linux-deb">Download .deb for Ubuntu, Debian</a>
             <div class="platform-foot">
+              <p class="platform-alt">Fedora or openSUSE? <a href="download/linux-rpm">Download the .rpm</a> · Other distributions: <a href="download/linux-appimage">AppImage</a></p>
               <p class="platform-note">Needs a Secret Service provider such as GNOME Keyring or KWallet to store the key. Linux can't tell which app owns a copy or see password-manager markers: use <strong>Pause monitoring</strong> in the tray before copying secrets, or delete the item afterwards.</p>
             </div>
           </li>
         </ul>
-        <p class="section-note">Updates are optional: on the first-run screen you choose whether Clipsa may check GitHub Releases for updates. Updates are verified against a signing key built into the app before they are installed. Prefer to build it yourself? See the <a href="https://github.com/mordamax/clipsa#development">development instructions</a>.</p>
+        <p class="section-note">Every download comes straight from <a href="https://github.com/mordamax/clipsa/releases">GitHub Releases</a>, with a <code>SHA256SUMS</code> file to check it against; the page after the download shows how. Updates are optional: on the first-run screen you choose whether Clipsa may check GitHub Releases for updates. Updates are verified against a signing key built into the app before they are installed. Prefer to build it yourself? See the <a href="https://github.com/mordamax/clipsa#development">development instructions</a>.</p>
       </div>
     </section>
 
@@ -574,7 +577,7 @@
           <h2 id="cta-title">Keep everything you copy. Privately.</h2>
           <p>Free and open source for macOS, Windows and Linux.</p>
           <div class="button-row">
-            <a class="btn btn-primary btn-lg" href="https://github.com/mordamax/clipsa/releases/latest">
+            <a class="btn btn-primary btn-lg" href="#download">
               <svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
               Download Clipsa
             </a>

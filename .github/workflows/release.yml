@@ -304,13 +304,33 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Render the Homebrew cask from the final DMGs
+      # The website's download pages link to these installers and tell people
+      # to check them against SHA256SUMS; the Homebrew cask takes its DMG
+      # checksums from it too. The list comes from the site's generator, so a
+      # bundle the site links to but the release lacks (e.g. renamed by a Tauri
+      # update) fails here instead of breaking a download.
+      - name: Checksum the installers the website links to
         run: |
           version="$(jq -r .version src-tauri/tauri.conf.json)"
-          gh release download "v$version" -D dmg -R "$GITHUB_REPOSITORY" \
-            -p "Clipsa_${version}_aarch64.dmg" -p "Clipsa_${version}_x64.dmg"
-          arm="$(sha256sum "dmg/Clipsa_${version}_aarch64.dmg" | cut -d' ' -f1)"
-          intel="$(sha256sum "dmg/Clipsa_${version}_x64.dmg" | cut -d' ' -f1)"
+          list="$(node scripts/build-site.mjs --assets)"
+          mapfile -t files <<<"$list"
+          patterns=()
+          for file in "${files[@]}"; do patterns+=(-p "$file"); done
+          gh release download "v$version" -D installers "${patterns[@]}" -R "$GITHUB_REPOSITORY"
+          for file in "${files[@]}"; do
+            [ -f "installers/$file" ] || { echo "::error::The website links to $file, which v$version doesn't have."; exit 1; }
+          done
+          (cd installers && sha256sum "${files[@]}") > SHA256SUMS
+          cat SHA256SUMS
+          gh release upload "v$version" SHA256SUMS --clobber -R "$GITHUB_REPOSITORY"
+
+      - name: Render the Homebrew cask from SHA256SUMS
+        run: |
+          version="$(jq -r .version src-tauri/tauri.conf.json)"
+          sum() { awk -v file="$1" '$2 == file { print $1 }' SHA256SUMS; }
+          arm="$(sum "Clipsa_${version}_aarch64.dmg")"
+          intel="$(sum "Clipsa_${version}_x64.dmg")"
+          [ -n "$arm" ] && [ -n "$intel" ] || { echo "::error::SHA256SUMS lacks a macOS DMG"; exit 1; }
           sed -e "s/@VERSION@/$version/" -e "s/@SHA256_ARM@/$arm/" -e "s/@SHA256_INTEL@/$intel/" \
             packaging/homebrew/clipsa.rb.in > clipsa.rb
           gh release upload "v$version" clipsa.rb --clobber -R "$GITHUB_REPOSITORY"

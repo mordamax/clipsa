@@ -1,9 +1,11 @@
 name: Deploy site
 
 # Deploys site/ to Cloudflare Pages (project `clipsa`, served at clipsa.dev).
-# The pages show the latest version and its download links, so a deploy waits
-# until that version's GitHub release is published: merging a release PR skips
-# here, and the release workflow starts this one after publishing.
+# The pages show the latest version and its download links, and the download
+# pages tell people to check the installer against that release's SHA256SUMS,
+# so a deploy waits until that version's GitHub release is published with it:
+# merging a release PR skips here, and the release workflow starts this one
+# after publishing.
 on:
   push:
     branches: [master]
@@ -35,11 +37,14 @@ jobs:
           version="$(grep -oE 'clipsa:version -->[0-9][0-9.]*' site/index.html | head -1 | sed 's/.*-->//')"
           [ -n "$version" ] || { echo "::error::No version marker in site/index.html"; exit 1; }
           # releases/tags/<tag> only returns published releases, never drafts.
-          if gh api "repos/$GITHUB_REPOSITORY/releases/tags/v$version" --silent 2>/dev/null; then
-            echo "deploy=true" >> "$GITHUB_OUTPUT"
-          else
+          if ! assets="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/v$version" --jq '.assets[].name' 2>/dev/null)"; then
             echo "::notice::v$version is not published yet; the release workflow deploys the site after publishing."
             echo "deploy=false" >> "$GITHUB_OUTPUT"
+          elif ! grep -qx SHA256SUMS <<<"$assets"; then
+            echo "::notice::v$version has no SHA256SUMS, which the download pages verify against; the site deploys with the next release."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Install pnpm
