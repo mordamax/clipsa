@@ -262,6 +262,9 @@
     refreshCanPaste();
     errorText = '';
     selected = 0;
+    // Every opening starts from the latest copies, not the previous search.
+    search = '';
+    clearTimeout(searchTimer);
     await refreshLockState();
     if (!$lockState.locked) {
       await showList();
