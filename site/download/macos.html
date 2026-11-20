@@ -99,7 +99,7 @@
         </div>
         <div class="card verify">
           <pre><code>cd ~/Downloads
-curl -LO https://github.com/mordamax/clipsa/releases/download/v0.1.4/SHA256SUMS
+curl -fLO https://github.com/mordamax/clipsa/releases/download/v0.1.4/SHA256SUMS
 shasum -a 256 -c --ignore-missing SHA256SUMS</code></pre>
           <p>It prints <code>Clipsa_0.1.4_aarch64.dmg: OK</code> when the file matches. <code>spctl -a -vv -t install Clipsa_0.1.4_aarch64.dmg</code> shows Apple's notarization: <code>source=Notarized Developer ID</code>. The same SHA-256 is listed next to each file on the <a href="https://github.com/mordamax/clipsa/releases/tag/v0.1.4">release page</a>.</p>
         </div>

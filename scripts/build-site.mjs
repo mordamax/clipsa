@@ -50,17 +50,21 @@ const appImageSteps = (file) => [
 ];
 
 const unixVerify = (sha256) => (file, sums) => ({
-  code: `cd ~/Downloads\ncurl -LO ${sums}\n${sha256} -c --ignore-missing SHA256SUMS`,
+  code: `cd ~/Downloads\ncurl -fLO ${sums}\n${sha256} -c --ignore-missing SHA256SUMS`,
   note: `It prints <code>${file}: OK</code> when the file matches.`
 });
 
-const macVerify = (file, sums) => ({
-  code: unixVerify('shasum -a 256')(file, sums).code,
-  note: `It prints <code>${file}: OK</code> when the file matches. <code>spctl -a -vv -t install ${file}</code> shows Apple's notarization: <code>source=Notarized Developer ID</code>.`
-});
+const macVerify = (file, sums) => {
+  const unix = unixVerify('shasum -a 256')(file, sums);
+  return { ...unix, note: `${unix.note} <code>spctl -a -vv -t install ${file}</code> shows Apple's notarization: <code>source=Notarized Developer ID</code>.` };
+};
+
+const linuxVerify = unixVerify('sha256sum');
+
+const MAC_HINT = 'Not sure which Mac you have? Apple menu → About This Mac lists a “Chip” on Apple Silicon and a “Processor” on Intel.';
 
 const windowsVerify = (file, sums) => ({
-  code: `cd ~\\Downloads\n$hash = (Get-FileHash .\\${file}).Hash.ToLower()\ncurl.exe -sL ${sums} | Select-String $hash`,
+  code: `cd ~\\Downloads\n$hash = (Get-FileHash .\\${file}).Hash.ToLower()\ncurl.exe -fsSL ${sums} | Select-String $hash`,
   note: `In PowerShell. It prints the line for <code>${file}</code> when the file matches, and nothing when it doesn't.`
 });
 
@@ -75,7 +79,7 @@ const DOWNLOADS = [
     system: 'macOS',
     label: 'Apple Silicon',
     file: (v) => `Clipsa_${v}_aarch64.dmg`,
-    hint: 'Not sure which Mac you have? Apple menu → About This Mac lists a “Chip” on Apple Silicon and a “Processor” on Intel.',
+    hint: MAC_HINT,
     steps: macSteps,
     verify: macVerify
   },
@@ -84,7 +88,7 @@ const DOWNLOADS = [
     system: 'macOS',
     label: 'Intel',
     file: (v) => `Clipsa_${v}_x64.dmg`,
-    hint: 'Not sure which Mac you have? Apple menu → About This Mac lists a “Chip” on Apple Silicon and a “Processor” on Intel.',
+    hint: MAC_HINT,
     steps: macSteps,
     verify: macVerify
   },
@@ -96,7 +100,7 @@ const DOWNLOADS = [
     label: '.deb (Ubuntu, Debian)',
     file: (v) => `Clipsa_${v}_amd64.deb`,
     steps: (file) => linuxPackageSteps(`sudo apt install ./${file}`),
-    verify: unixVerify('sha256sum')
+    verify: linuxVerify
   },
   {
     slug: 'linux-rpm',
@@ -104,9 +108,9 @@ const DOWNLOADS = [
     label: '.rpm (Fedora, openSUSE)',
     file: (v) => `Clipsa-${v}-1.x86_64.rpm`,
     steps: (file) => linuxPackageSteps(`sudo dnf install ./${file}     # Fedora\nsudo zypper install ./${file}  # openSUSE`),
-    verify: unixVerify('sha256sum')
+    verify: linuxVerify
   },
-  { slug: 'linux-appimage', system: 'Linux', label: 'AppImage (any distribution)', file: (v) => `Clipsa_${v}_amd64.AppImage`, steps: appImageSteps, verify: unixVerify('sha256sum') }
+  { slug: 'linux-appimage', system: 'Linux', label: 'AppImage (any distribution)', file: (v) => `Clipsa_${v}_amd64.AppImage`, steps: appImageSteps, verify: linuxVerify }
 ];
 
 const DOWNLOAD_TEMPLATE = readFileSync(join(ROOT, 'scripts', 'download-page.html'), 'utf8');
@@ -268,7 +272,7 @@ for (const file of readdirSync(SITE).filter((f) => f.endsWith('.html'))) {
 
 const downloadDir = join(SITE, 'download');
 const pages = new Map(DOWNLOADS.map((d) => [`${d.slug}.html`, renderDownload(d, latest.version)]));
-for (const file of existsSync(downloadDir) ? readdirSync(downloadDir) : []) {
+for (const file of existsSync(downloadDir) ? readdirSync(downloadDir).filter((f) => f.endsWith('.html')) : []) {
   if (pages.has(file)) continue;
   stale.push(`site/download/${file}`);
   if (!check) rmSync(join(downloadDir, file));

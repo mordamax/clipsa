@@ -100,7 +100,7 @@
         <div class="card verify">
           <pre><code>cd ~\Downloads
 $hash = (Get-FileHash .\Clipsa_0.1.4_x64_en-US.msi).Hash.ToLower()
-curl.exe -sL https://github.com/mordamax/clipsa/releases/download/v0.1.4/SHA256SUMS | Select-String $hash</code></pre>
+curl.exe -fsSL https://github.com/mordamax/clipsa/releases/download/v0.1.4/SHA256SUMS | Select-String $hash</code></pre>
           <p>In PowerShell. It prints the line for <code>Clipsa_0.1.4_x64_en-US.msi</code> when the file matches, and nothing when it doesn't. The same SHA-256 is listed next to each file on the <a href="https://github.com/mordamax/clipsa/releases/tag/v0.1.4">release page</a>.</p>
         </div>
       </div>
