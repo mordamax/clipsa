@@ -12,7 +12,7 @@ Everything you copy, searchable and one keystroke away. Encrypted on your device
 [![Platforms](https://img.shields.io/badge/platforms-macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-5a54ee)](#install)
 [![License: MIT](https://img.shields.io/github/license/mordamax/clipsa?color=5a54ee)](./LICENSE)
 
-[**Download**](https://github.com/mordamax/clipsa/releases/latest) · [Website](https://clipsa.dev) · [Compare with Maccy, Paste, Raycast…](https://clipsa.dev/compare) · [Changelog](https://clipsa.dev/changelog)
+[**Download**](https://clipsa.dev/#download) · [Website](https://clipsa.dev) · [Compare with Maccy, Paste, Raycast…](https://clipsa.dev/compare) · [Changelog](https://clipsa.dev/changelog)
 
 <br>
 
@@ -34,9 +34,11 @@ Everything you copy, searchable and one keystroke away. Encrypted on your device
 
 | Platform | Download | Notes |
 |---|---|---|
-| **macOS** 10.13+, Apple Silicon and Intel | [`.dmg`](https://github.com/mordamax/clipsa/releases/latest) or `brew install --cask mordamax/tap/clipsa` | Signed and notarized. Pasting into other apps needs the Accessibility permission ([details](#keyboard-shortcuts)). |
-| **Windows** 10/11, x64 | [`.msi` or `-setup.exe`](https://github.com/mordamax/clipsa/releases/latest) | Not code-signed yet, so SmartScreen may warn. |
-| **Linux** x64 | [`.AppImage`, `.deb` or `.rpm`](https://github.com/mordamax/clipsa/releases/latest) | Needs a Secret Service provider (GNOME Keyring, KWallet) to store the key. |
+| **macOS** 10.13+, Apple Silicon and Intel | `.dmg` for [Apple Silicon](https://clipsa.dev/download/macos) or [Intel](https://clipsa.dev/download/macos-intel), or `brew install --cask mordamax/tap/clipsa` | Signed and notarized. Pasting into other apps needs the Accessibility permission ([details](#keyboard-shortcuts)). |
+| **Windows** 10/11, x64 | [`-setup.exe`](https://clipsa.dev/download/windows) or [`.msi`](https://clipsa.dev/download/windows-msi) | Not code-signed yet, so SmartScreen may warn. |
+| **Linux** x64 | [`.deb`](https://clipsa.dev/download/linux-deb), [`.rpm`](https://clipsa.dev/download/linux-rpm) or [`.AppImage`](https://clipsa.dev/download/linux-appimage) | Needs a Secret Service provider (GNOME Keyring, KWallet) to store the key. |
+
+Every file comes from [GitHub Releases](https://github.com/mordamax/clipsa/releases); each release has a `SHA256SUMS` file to check downloads against.
 
 On first launch Clipsa asks whether it may check GitHub Releases for updates. Updates are verified against a signing key built into the app before they are installed.
 

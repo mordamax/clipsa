@@ -10,6 +10,13 @@ release notes, in Clipsa's update window and on
 [clipsa.dev/changelog](https://clipsa.dev/changelog) (run `pnpm site`), so write
 it for users; see [Release notes](./docs/deployment.md#release-notes) for the format.
 
+## [0.1.5] - Unreleased
+
+### Added
+
+- Every release includes a `SHA256SUMS` file with the checksums of its installers.
+- The download buttons on [clipsa.dev](https://clipsa.dev/#download) start the right installer for your system directly, then show how to install it and how to check the download.
+
 ## [0.1.4] - 2026-11-17
 
 ### Changed

@@ -337,6 +337,25 @@ jobs:
           jq -r '.platforms | to_entries[] | "\(.key)\t\(.value.url)"' latest.json
           gh release upload "$tag" latest.json --clobber -R "$GITHUB_REPOSITORY"
 
+      # The website's download pages link to these installers and tell people
+      # to check them against SHA256SUMS. The list comes from the site's
+      # generator, so a bundle the site links to but the release lacks (e.g.
+      # renamed by a Tauri update) fails here instead of breaking a download.
+      - name: Checksum the installers the website links to
+        run: |
+          version="$(jq -r .version src-tauri/tauri.conf.json)"
+          list="$(node scripts/build-site.mjs --assets)"
+          mapfile -t files <<<"$list"
+          patterns=()
+          for file in "${files[@]}"; do patterns+=(-p "$file"); done
+          gh release download "v$version" -D installers "${patterns[@]}" -R "$GITHUB_REPOSITORY"
+          for file in "${files[@]}"; do
+            [ -f "installers/$file" ] || { echo "::error::The website links to $file, which v$version doesn't have."; exit 1; }
+          done
+          (cd installers && sha256sum "${files[@]}") > SHA256SUMS
+          cat SHA256SUMS
+          gh release upload "v$version" SHA256SUMS --clobber -R "$GITHUB_REPOSITORY"
+
       - name: Publish draft release
         run: gh release edit "v$(jq -r .version src-tauri/tauri.conf.json)" --draft=false --latest -R "$GITHUB_REPOSITORY"
 
