@@ -183,12 +183,12 @@ This checks that the app and its webviews start, data is written to the containe
 2. **App record.** In [App Store Connect](https://appstoreconnect.apple.com/apps), create a macOS app with that bundle ID.
 3. **Certificates.** Create an **Apple Distribution** certificate and a **Mac Installer Distribution** certificate. Export each with its private key from Keychain Access as a `.p12`.
 4. **Provisioning profile.** In Profiles, create a **Mac App Store Connect** profile (Distribution → Mac App Store Connect) for the App ID and the Apple Distribution certificate, then download the `.provisionprofile`.
-5. **API key.** In App Store Connect → Users and Access → Integrations → App Store Connect API, create a team key with the App Manager role. Note the Key ID and Issuer ID, and download `AuthKey_<KEYID>.p8`. It can be downloaded only once.
+5. **API key.** In App Store Connect → Users and Access → Integrations → App Store Connect API, create a team key with the **Developer** role, which is enough to upload builds (App Manager would also allow changing prices and submitting versions). Note the Key ID and Issuer ID, and download `AuthKey_<KEYID>.p8`. It can be downloaded only once.
 6. Add the secrets below.
 
 ### Secrets
 
-These live in the GitHub environment **`appstore`**, which accepts only runs from `master`. The workflow fails before building and lists any missing secret. They are separate from the Developer ID secrets in `release`.
+These live in the GitHub environment **`appstore`**, which accepts only runs from `master` and **requires approval**: the job waits, without access to the secrets, until a required reviewer (the maintainer) clicks **Approve** on the run page. The workflow fails before building and lists any missing secret. They are separate from the Developer ID secrets in `release`.
 
 | Secret | Value |
 |---|---|
