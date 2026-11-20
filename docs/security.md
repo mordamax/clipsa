@@ -62,6 +62,7 @@ The repository is public and the release workflow holds keys that could ship cod
 **Who can run code with the secrets**
 - All release secrets live in the GitHub environment `release`, which only accepts jobs running from version tags (`v*.*.*`); App Store secrets live in `appstore`, which only accepts `master`. There are no repository-level secrets, so branch and pull-request workflows see none.
 - Workflows from forks never receive secrets, and every outside contributor's first workflow run needs the maintainer's approval. No workflow uses `pull_request_target`.
+- Website PR previews need the Cloudflare token, which can also deploy clipsa.dev. The PR's code never runs with it: `site-preview-build.yml` packs `site/` with no secrets, and `site-preview.yml` runs from `master` (`workflow_run`, environment `site-preview`, which only accepts `master`), installs wrangler from master's lockfile and uploads only those static files, refusing `_worker.js` and `_routes.json`. PRs from forks get no preview.
 - The default `GITHUB_TOKEN` is read-only; only the jobs that create or publish the release get `contents: write`. `actions/checkout` runs with `persist-credentials: false`, so build scripts of dependencies can't pick the token up from `.git/config`.
 - Secrets and inputs reach scripts through environment variables, never through `${{ }}` text substitution into shell code.
 
