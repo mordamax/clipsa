@@ -27,6 +27,7 @@ Run the same checks as CI:
 pnpm check                      # Svelte / TypeScript
 pnpm build                      # builds the SPA into build/ (needed before cargo commands on a clean checkout)
 pnpm site --check               # site pages generated from CHANGELOG.md are current (pnpm site to fix)
+node scripts/check-changes.mjs  # release notes in .changes/ are valid
 cd src-tauri
 cargo fmt --all -- --check
 cargo clippy --all-targets -- -D warnings
@@ -49,11 +50,13 @@ Rust tests live next to the code in `#[cfg(test)]` modules. Tests must never use
 
 `master` only changes through pull requests, for maintainers too: direct pushes, force pushes and deletion are blocked. A PR can merge once CI passes on Ubuntu, macOS and Windows and the **Site** check passes; it is squash-merged, so `master` stays linear, and the branch is deleted. Branch from `master` and use conventional-style commit messages and PR titles (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `ci:`, `deps:`).
 
+**Release notes:** if users will notice your change, add a note in `.changes/` describing what changes for them (see [`.changes/README.md`](../.changes/README.md)). Don't edit `CHANGELOG.md`; the release PR writes it from the notes.
+
 Dependabot opens one grouped PR per ecosystem (GitHub Actions, Cargo, npm) each week, majors included; see `.github/dependabot.yml`.
 
 ## Releases
 
-See [Building and releasing](./deployment.md).
+Releases are automated: notes in `.changes/` are collected into a "release: X.Y.Z" pull request, and merging it publishes the release. See [Releases](./deployment.md#releases).
 
 ## Security issues
 

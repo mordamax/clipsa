@@ -1,7 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Clipsa",
-  "version": "0.1.5",
   "identifier": "com.clipsa.app",
   "build": {
     "beforeDevCommand": "pnpm dev",

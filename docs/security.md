@@ -60,7 +60,7 @@ The only network traffic is the update check (`check_for_updates`), which is off
 The repository is public and the release workflow holds keys that could ship code to every Clipsa user: the updater signing key (any update signed with it installs silently once published), the Developer ID certificate and notarization key, and the Homebrew tap credential. The measures below limit who and what can reach them.
 
 **Who can run code with the secrets**
-- All release secrets live in the GitHub environment `release`, which only accepts jobs running from version tags (`v*.*.*`); App Store secrets live in `appstore`, which only accepts `master` and holds each run until the maintainer approves it, so not even a malicious merge can use the App Store keys unnoticed. There are no repository-level secrets, so branch and pull-request workflows see none.
+- All release secrets live in the GitHub environment `release`, which only accepts jobs running from version tags (`v*.*.*`); App Store secrets live in `appstore`, which only accepts `master` and version tags and holds each run until the maintainer approves it, so not even a malicious merge can use the App Store keys unnoticed. The release PR bot (`release-pr.yml`) uses environment `release-pr` (`master` only), which holds only the GitHub App's key; its tokens are limited to this repository's contents and pull requests and expire after an hour. It can open the release PR and create a version tag, but a tag is only created for a version whose dated changelog section is on `master`, which takes the maintainer merging the release PR. There are no repository-level secrets, so branch and pull-request workflows see none.
 - Workflows from forks never receive secrets, and every outside contributor's first workflow run needs the maintainer's approval. No workflow uses `pull_request_target`.
 - Website PR previews need the Cloudflare token, which can also deploy clipsa.dev. The PR's code never runs with it: `site-preview-build.yml` packs `site/` with no secrets, and `site-preview.yml` runs from `master` (`workflow_run`, environment `site-preview`, which only accepts `master`), installs wrangler from master's lockfile and uploads only those static files, refusing `_worker.js` and `_routes.json`. PRs from forks get no preview.
 - The default `GITHUB_TOKEN` is read-only; only the jobs that create or publish the release get `contents: write`. `actions/checkout` runs with `persist-credentials: false`, so build scripts of dependencies can't pick the token up from `.git/config`.
@@ -74,11 +74,11 @@ The repository is public and the release workflow holds keys that could ship cod
 **What can change after the fact**
 - `master` can't be force-pushed or deleted, and `v*` tags can't be moved or deleted (repository rulesets, no bypass). The tap's `main` branch has the same branch rule.
 - Releases are immutable once published, so assets such as `latest.json`, the DMGs and the updater bundles can't be swapped later.
-- The release workflow refuses to run when the tag doesn't match the app version.
+- The release and App Store workflows refuse to run when the tag doesn't match the app version.
 
 **Credential scope**
 - Notarization uses an App Store Connect API key with the Developer role, which can't read the Apple ID's iCloud data the way an app-specific password can.
-- The Homebrew tap is updated with a one-hour token minted from a GitHub App installed only on `mordamax/homebrew-tap` with Contents: write.
+- The Homebrew tap and the release PR bot use one-hour tokens minted from the Clipsa Homebrew GitHub App, installed on `mordamax/homebrew-tap` and `mordamax/clipsa` with Contents and Pull requests: write. Each job asks only for the repository and permissions it needs (the tap: its contents; the release PR: this repository's contents and pull requests). The App's private key is stored in two environments, `release` (tags only) and `release-pr` (`master` only); a leak of it could push to the tap or open PRs and create tags here, so it is rotated like the other keys below.
 
 **If a key leaks:** revoke the Developer ID certificate (developer.apple.com → Certificates) and the API key (App Store Connect → Users and Access → Integrations), regenerate the GitHub App's private key, and rotate the updater key by publishing one last update signed with the old key that carries the new public key.
 

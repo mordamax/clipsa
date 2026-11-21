@@ -41,11 +41,35 @@ The public half of this key is `plugins.updater.pubkey` in `tauri.conf.json`. **
 
 ## CI (`.github/workflows/ci.yml`)
 
-Runs on every pull request to `master` and on pushes to `master` on Ubuntu, macOS and Windows: `pnpm check`, `pnpm build` (`tauri::generate_context!` needs `build/` to exist), `cargo fmt --check`, `cargo clippy -D warnings` (plain, `--features self-update` and, on macOS, `--features app-store`) and `cargo test --all-targets --features self-update`. A **Site** job checks that the site pages generated from `CHANGELOG.md` are current. Tests use injected keys and never touch the OS keychain. All jobs are required checks for merging a PR; pushes to `master` that only touch `site/`, `docs/` or Markdown skip the app checks, since their PR already ran them.
+Runs on every pull request to `master` and on pushes to `master` on Ubuntu, macOS and Windows: `pnpm check`, `pnpm build` (`tauri::generate_context!` needs `build/` to exist), `cargo fmt --check`, `cargo clippy -D warnings` (plain, `--features self-update` and, on macOS, `--features app-store`) and `cargo test --all-targets --features self-update`. A **Site** job checks that the site pages generated from `CHANGELOG.md` are current and that the release notes in `.changes/` are valid (`scripts/check-changes.mjs`, which also lists them in the job summary). Tests use injected keys and never touch the OS keychain. All jobs are required checks for merging a PR; pushes to `master` that only touch `site/`, `docs/` or Markdown skip the app checks, since their PR already ran them.
 
-## Release workflow (`.github/workflows/release.yml`)
+## Releases
 
-Triggered by pushing a version tag `vX.Y.Z`. It can also be re-run by hand (`workflow_dispatch`) on that tag: choose the tag under "Use workflow from". The tag must equal `v` + the version in `tauri.conf.json`; the **notes** job fails otherwise, so a mistyped tag can never add files to an already published release.
+Releases are prepared by **covector** from release notes that pull requests add to `.changes/` (see [`.changes/README.md`](../.changes/README.md)), and published by GitHub Actions. The maintainer's only step is merging the release PR, plus approving the Mac App Store build.
+
+```mermaid
+flowchart LR
+  A["PR with a note in .changes/"] -->|merged| B["Release PR workflow:<br/>updates PR 'release: X.Y.Z'"]
+  B -->|maintainer merges| C["Release PR workflow:<br/>creates tag vX.Y.Z"]
+  C --> D["Release workflow:<br/>build, sign, notarize, publish"]
+  D --> E["Homebrew cask,<br/>website deploy"]
+  D --> F["Mac App Store workflow:<br/>waits for approval, uploads to TestFlight"]
+```
+
+The version has one source: `version` in `src-tauri/Cargo.toml` (`tauri.conf.json` and `package.json` have none, so Tauri uses Cargo's). Workflows read it with `scripts/app-version.sh`.
+
+### Release PR (`.github/workflows/release-pr.yml`)
+
+Runs on every push to `master`, in environment **`release-pr`** (`master` only), with a one-hour token of the Clipsa Homebrew GitHub App. GitHub doesn't start workflows for pull requests or tags created with `GITHUB_TOKEN`, so the App's token is what lets CI check the release PR and the tag start the release.
+
+1. **release-pr**: if `.changes/` holds notes, it checks them (`scripts/check-changes.mjs`), runs `covector version` and force-pushes the result to the branch `release/next`, then opens or updates the PR **"release: X.Y.Z"** with the release notes as its description. `covector version` raises the version in `Cargo.toml` by the largest bump among the notes, adds a `## [X.Y.Z]` section to `CHANGELOG.md` with the notes grouped by section, deletes the note files and runs `scripts/finish-release.mjs`, which dates the section, rewrites each entry as `- Note ([#PR](link))`, runs `cargo update -p clipsa` and regenerates the site pages. The PR is rebuilt on every push to `master`, so it always contains everything merged so far, dated the day it was last rebuilt.
+2. **tag**: if `master`'s version has no tag yet and `CHANGELOG.md` has its dated section, which only happens when a release PR was merged, it creates the tag `vX.Y.Z` on that commit. The tag starts the release workflow.
+
+To release: review and merge the release PR. To change a note before that, edit it in `.changes/` through a normal PR; the release PR is rebuilt.
+
+### Release workflow (`.github/workflows/release.yml`)
+
+Triggered by the tag `vX.Y.Z`. It can also be re-run by hand (`workflow_dispatch`) on that tag: choose the tag under "Use workflow from". The tag must equal `v` + the app version; the **notes** job fails otherwise, so a mistyped tag can never add files to an already published release.
 
 1. **notes**: extracts the `CHANGELOG.md` section for the version (see [Release notes](#release-notes)) and creates the **draft** release `v<version>` with it as the release text, once, before any build starts (a re-run of the whole workflow reuses that draft). The workflow stops here, before anything is built or uploaded, if the section is missing or empty, if the version is already published, or if more than one release exists for the tag.
 2. **build** (matrix):
@@ -57,27 +81,22 @@ Triggered by pushing a version tag `vX.Y.Z`. It can also be re-run by hand (`wor
    Each job runs `tauri-apps/tauri-action` (v1) with `--config src-tauri/tauri.release.conf.json` and uploads installers, updater bundles and `.sig` files into that draft (`releaseId`). The jobs don't touch `latest.json` (`uploadUpdaterJson: false`): when parallel jobs each looked for the draft or merged their entry into a shared `latest.json`, they raced (0.1.3 ended up with two drafts).
 
    On macOS, Tauri notarizes and staples the `.app` but only signs the DMG around it. The next step submits the DMG to Apple's notary service, staples the ticket and replaces the uploaded DMG, so `spctl -a -vvv -t install Clipsa_<version>_<arch>.dmg` reports `Notarized Developer ID`. The first notarizations for a new team can take an hour.
-3. **publish**: runs only if every build succeeded. It attaches `SHA256SUMS` for the installers the website links to (`node scripts/build-site.mjs --assets`) and fails if any of them is missing, so a renamed bundle can't break a download page. It renders the Homebrew cask from `packaging/homebrew/clipsa.rb.in` with the DMG checksums from `SHA256SUMS` and attaches `clipsa.rb`. Then it generates `latest.json` once with `scripts/updater-manifest.sh` from the `.sig` files in the release: every platform is required, the `notes` field is the changelog section, and URLs are the regular `github.com/…/releases/download/<tag>/<file>` ones (not `api.github.com` asset URLs, which count against GitHub's anonymous limit of 60 requests per hour per IP). Finally it makes the draft public (`gh release edit --draft=false --latest`). Releases are **immutable** once published (repository setting), which is why everything is attached before this point. From then on `https://github.com/mordamax/clipsa/releases/latest/download/latest.json` serves the new version to the in-app updater.
-4. **homebrew**: gets a one-hour token from the Clipsa Homebrew GitHub App (installed only on `mordamax/homebrew-tap`) and pushes `clipsa.rb` there (`brew install --cask mordamax/tap/clipsa`).
+3. **publish**: runs only if every build succeeded. It attaches `SHA256SUMS` for the installers the website links to (`node scripts/build-site.mjs --assets`) and fails if any of them is missing, so a renamed bundle can't break a download page. It renders the Homebrew cask from `packaging/homebrew/clipsa.rb.in` with the DMG checksums from `SHA256SUMS` and attaches `clipsa.rb`. Then it generates `latest.json` once with `scripts/updater-manifest.sh` from the `.sig` files in the release: every platform is required, the `notes` field is the changelog section, and URLs are the regular `github.com/…/releases/download/<tag>/<file>` ones (not `api.github.com` asset URLs, which count against GitHub's anonymous limit of 60 requests per hour per IP). Then it makes the draft public (`gh release edit --draft=false --latest`). Releases are **immutable** once published (repository setting), which is why everything is attached before this point. From then on `https://github.com/mordamax/clipsa/releases/latest/download/latest.json` serves the new version to the in-app updater. Finally it starts the website deploy and the [Mac App Store workflow](#mac-app-store) for the tag, which waits for the maintainer's approval.
+4. **homebrew**: gets a one-hour token from the Clipsa Homebrew GitHub App, limited to `mordamax/homebrew-tap` with `contents: write`, and pushes `clipsa.rb` there (`brew install --cask mordamax/tap/clipsa`).
 
 If any build fails, the release stays a draft and no user receives the update. Fix the problem, delete the draft, then either re-run the failed jobs or, if the fix needs a new commit, release it as the next patch version: version tags can't be moved or deleted (ruleset "Immutable version tags"). To re-tag an unpublished version anyway, temporarily disable that ruleset under Settings → Rules.
 
 ### Release notes
 
-`CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Every version has a section headed `## [X.Y.Z] - YYYY-MM-DD`; while it is in progress, write `## [X.Y.Z] - Unreleased` and replace `Unreleased` with the date when you release (the workflow does not check the date). Group entries under `### Added`, `### Changed`, `### Fixed`, `### Removed` or `### Security`.
+`CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and is written by the release PR from the notes in `.changes/`; don't edit release sections by hand. Every version has a section headed `## [X.Y.Z] - YYYY-MM-DD` with entries under `### Added`, `### Changed`, `### Fixed`, `### Removed` or `### Security`. The file must start with `# Changelog` followed directly by the newest release: covector inserts each new release right after that heading, and the site would show any text there as part of it.
 
-Everything between the version's heading and the next `## [` heading is published unchanged: as the GitHub release text, and in Clipsa's "Software Update" window (direct-download builds), which shows `latest.json`'s `notes` under "Release Notes". Write it for users, not for developers. The window renders a small Markdown subset: `##`/`###` headings, `- ` bullets, paragraphs, `**bold**` and `` `code` ``. Links are shown as their text only, and any HTML is displayed literally.
+Everything between the version's heading and the next `## [` heading is published unchanged: as the GitHub release text, on clipsa.dev/changelog and in Clipsa's "Software Update" window (direct-download builds), which shows `latest.json`'s `notes` under "Release Notes". Notes are written for users, not developers (see `.changes/README.md`). The window renders a small Markdown subset: `##`/`###` headings, `- ` bullets, paragraphs, `**bold**` and `` `code` ``. Links are shown as their text only, and any HTML is displayed literally.
 
-Notes flow: `CHANGELOG.md` → **notes** job → tauri-action `releaseBody` → GitHub release text and `latest.json` `notes` → updater plugin `Update.body` → update window.
+Notes flow: `.changes/*.md` → release PR → `CHANGELOG.md` → **notes** job → tauri-action `releaseBody` → GitHub release text and `latest.json` `notes` → updater plugin `Update.body` → update window.
 
-### Cutting a release
+### Releasing by hand
 
-1. On a branch, add a non-empty, dated section for the version to `CHANGELOG.md`.
-2. Set the same version in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `package.json` (and `cargo update -p clipsa` for `Cargo.lock`).
-3. `pnpm site` to regenerate the site's changelog page and latest version from `CHANGELOG.md` (see [Website](#website-cloudflare-pages)).
-4. Open a PR (`chore: release X.Y.Z`), wait for CI, merge it.
-5. Tag the merge commit on `master`: `git pull && git tag vX.Y.Z && git push origin vX.Y.Z`. The tag must equal `v` + the version in `tauri.conf.json`. The workflow stops before building if the site wasn't regenerated.
-6. Wait for the workflow to finish and check the published release notes and assets. Its publish job then deploys the website (see below).
+If the automation is unavailable, the same steps work locally: `pnpm exec covector version` (it runs `scripts/finish-release.mjs`), open a PR with the result and merge it; the **tag** job then tags it. Without the Release PR workflow, tag the merge commit yourself: `git pull && git tag vX.Y.Z && git push origin vX.Y.Z`.
 
 Download counts come from GitHub Releases, which serve every download (website, direct links, Homebrew, in-app updates): `pnpm stats` prints them per version, split into macOS/Windows/Linux installers, macOS in-app updates and update checks (`latest.json` fetches). Neither the app nor the website tracks anything.
 
@@ -99,6 +118,8 @@ Release secrets live in the GitHub environment **`release`** (Settings → Envir
 
 `GITHUB_TOKEN` is provided automatically; the default is read-only and only the jobs that upload to the release get `contents: write`.
 
+The **Release PR** workflow uses its own environment, **`release-pr`**, which accepts only `master` and holds nothing but the GitHub App's credentials: variable `HOMEBREW_APP_CLIENT_ID` and secret `HOMEBREW_APP_PRIVATE_KEY`, the same App as the **homebrew** job (the signing keys in `release` stay out of reach of `master`). Each job asks for a token limited to `mordamax/clipsa` and to what it needs: `contents: write` and `pull-requests: write` for the release PR, `contents: write` for the tag. The App therefore needs the repository permissions **Contents: Read and write** and **Pull requests: Read and write**, and must be installed on both `mordamax/homebrew-tap` and `mordamax/clipsa`.
+
 macOS releases must be signed with a Developer ID and notarized; the workflow fails before building if any required Apple secret is missing. A stable signing identity is what lets users click "Always Allow" for keychain access and grant Accessibility once: macOS ties both to the code signature, so unsigned builds would re-prompt after every update. (The Tauri bundler treats an Apple variable set to an empty string as configured, so the workflow exports them only after this check.)
 
 Windows installers are not code-signed; SmartScreen may warn until the app builds reputation.
@@ -107,7 +128,7 @@ Windows installers are not code-signed; SmartScreen may warn until the app build
 
 The static site in `site/` is served from the Cloudflare Pages project `clipsa` at clipsa.dev (DNS on Cloudflare; the domain is registered at Vercel with Cloudflare's nameservers). No framework, build or install step: the files are uploaded as they are. Pages serves `privacy.html` at `/privacy` (clean URLs). `site/_headers` sets the security headers (CSP without any third-party origin, `no-referrer`, `nosniff`) and caching for `/assets/`.
 
-The release-dependent parts are generated from `CHANGELOG.md` by `scripts/build-site.mjs` (`pnpm site`) and committed: `site/changelog.html` (every dated release; an `Unreleased` section is never published), the latest version and date wherever a page has `<!-- clipsa:version -->` / `<!-- clipsa:date -->` markers, and the download pages in `site/download/`. The pages load nothing at runtime, so the CSP and the privacy policy's "no scripts, no third-party requests" stay true. CI's **Site** job fails when the committed pages don't match `CHANGELOG.md`.
+The release-dependent parts are generated from `CHANGELOG.md` by `scripts/build-site.mjs` (`pnpm site`) and committed: `site/changelog.html` (every dated release; an undated section is never published), the latest version and date wherever a page has `<!-- clipsa:version -->` / `<!-- clipsa:date -->` markers, and the download pages in `site/download/`. The pages load nothing at runtime, so the CSP and the privacy policy's "no scripts, no third-party requests" stay true. CI's **Site** job fails when the committed pages don't match `CHANGELOG.md`.
 
 Download buttons never link to the GitHub release page, which also lists updater bundles, signatures, `latest.json` and the cask. Each installer has a page at `/download/<slug>` (`DOWNLOADS` in `scripts/build-site.mjs`, rendered from `scripts/download-page.html`): a meta refresh starts the download straight from `github.com/…/releases/download/v<version>/<file>`, so the site stays script-free and GitHub still counts every download (`pnpm stats`), and the page shows install steps and how to check the file against the release's `SHA256SUMS`. The pages link to versioned files, which is safe because the site is deployed only once that version is published (below). Adding or renaming an installer means editing `DOWNLOADS`; the release workflow then checksums the new list.
 
@@ -188,7 +209,7 @@ This checks that the app and its webviews start, data is written to the containe
 
 ### Secrets
 
-These live in the GitHub environment **`appstore`**, which accepts only runs from `master` and **requires approval**: the job waits, without access to the secrets, until a required reviewer (the maintainer) clicks **Approve** on the run page. The workflow fails before building and lists any missing secret. They are separate from the Developer ID secrets in `release`.
+These live in the GitHub environment **`appstore`**, which accepts only runs from `master` and from version tags (`v*.*.*`) and **requires approval**: the job waits, without access to the secrets, until a required reviewer (the maintainer) clicks **Approve** on the run page. The workflow fails before building and lists any missing secret. They are separate from the Developer ID secrets in `release`.
 
 | Secret | Value |
 |---|---|
@@ -206,7 +227,7 @@ These live in the GitHub environment **`appstore`**, which accepts only runs fro
 
 ### Running the workflow
 
-Actions → **Mac App Store** → Run workflow. It takes these inputs:
+The release workflow starts it for every published version tag, so each release gets an App Store build of exactly that tag; a tag that doesn't match the app version fails before anything is built. It can also be run by hand from `master` (test builds for TestFlight): Actions → **Mac App Store** → Run workflow. Either way the run waits for approval. It takes these inputs:
 
 - `build_number`: `CFBundleVersion`. It must be unique for each version in App Store Connect. The default is the workflow run number.
 - `upload`: when off, the workflow builds and signs but only attaches `Clipsa.pkg` to the run.
@@ -220,7 +241,7 @@ Steps:
 5. Run `xcrun productbuild --sign "$APPLE_INSTALLER_IDENTITY" --component Clipsa.app /Applications Clipsa.pkg`.
 6. Run `xcrun altool --upload-app --type macos --apiKey … --apiIssuer …`. The key is written to `~/.appstoreconnect/private_keys/AuthKey_<id>.p8` and removed afterwards.
 
-After processing, the build appears under TestFlight in App Store Connect. The marketing version (`CFBundleShortVersionString`) is the `version` in `tauri.conf.json`.
+After processing, the build appears under TestFlight in App Store Connect. The marketing version (`CFBundleShortVersionString`) is the app version from `src-tauri/Cargo.toml`. Submitting a version for review and releasing it happen in App Store Connect; the upload key's **Developer** role can't do either (that needs Account Holder, Admin or App Manager).
 
 ### Export compliance
 

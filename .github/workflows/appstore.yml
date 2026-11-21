@@ -4,9 +4,13 @@ name: Mac App Store
 # src-tauri/tauri.appstore.conf.json), signs it with the Apple Distribution
 # certificate, wraps it in a signed installer package and uploads it to App
 # Store Connect, where it shows up in TestFlight after processing.
-# Setup (certificates, profile, API key, secrets): docs/deployment.md →
-# "Mac App Store". Secrets live in the `appstore` environment, which only
-# accepts runs from master; release builds use no caches.
+# The release workflow starts it for every published version tag; it can also
+# be run by hand from master (test builds). Every run waits for the
+# maintainer's approval: secrets live in the `appstore` environment, which
+# requires it and accepts only master and version tags. Submitting and
+# releasing a version happen in App Store Connect, which the upload key's
+# Developer role can't do. Setup: docs/deployment.md → "Mac App Store".
+# Release builds use no caches.
 
 on:
   workflow_dispatch:
@@ -39,6 +43,20 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      # A version tag must match the app version, like in the release workflow,
+      # so a build labelled 0.1.6 is always the code that was released as 0.1.6.
+      - name: Check that a tag matches the app version
+        if: github.ref_type == 'tag'
+        shell: bash
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          version="$(scripts/app-version.sh)"
+          if [ "$REF_NAME" != "v$version" ]; then
+            echo "::error::The tag $REF_NAME doesn't match the app version $version (src-tauri/Cargo.toml)."
+            exit 1
+          fi
 
       - name: Check secrets
         shell: bash

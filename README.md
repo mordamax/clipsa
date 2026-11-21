@@ -178,7 +178,7 @@ pnpm install:mac    # macOS: build a release Clipsa.app, sign it and install it 
 
 - Checks, tests, code guidelines and the pull request workflow: [docs/contributing.md](./docs/contributing.md)
 - Local signing for `install:mac` and updater artifacts: [docs/deployment.md](./docs/deployment.md#local-builds)
-- Cutting a release: [docs/deployment.md](./docs/deployment.md#cutting-a-release)
+- Release notes and releases: [docs/deployment.md](./docs/deployment.md#releases)
 
 **Documentation:** [Architecture](./docs/architecture.md) · [Security model](./docs/security.md) · [Building and releasing](./docs/deployment.md) · [Contributing](./docs/contributing.md) · [Roadmap](./docs/development-roadmap.md)
 
