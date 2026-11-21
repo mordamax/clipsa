@@ -17,6 +17,11 @@ it for users; see [Release notes](./docs/deployment.md#release-notes) for the fo
 - Every release includes a `SHA256SUMS` file with the checksums of its installers.
 - The download buttons on [clipsa.dev](https://clipsa.dev/#download) start the right installer for your system directly, then show how to install it and how to check the download.
 
+### Changed
+
+- The [privacy policy](https://clipsa.dev/privacy) now says "get" instead of "buy" for the Mac App Store edition, which will start out free. Nothing changes in what is collected: nothing.
+- Settings only explains how things work on your own system: for example, excluded apps on a Mac ask for a bundle identifier, without the Windows and Linux notes.
+
 ## [0.1.4] - 2026-11-17
 
 ### Changed

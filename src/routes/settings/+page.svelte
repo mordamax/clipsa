@@ -28,7 +28,7 @@
   import type { AppSettings, Theme } from '#lib/types/settings.ts';
   import { showUpdater } from '#lib/updater.ts';
   import { errorMessage } from '#lib/utils/errors.ts';
-  import { IS_WINDOWS, MOD_KEY, formatBytes, hotkeyParts } from '#lib/utils/format.ts';
+  import { IS_MAC, IS_WINDOWS, MOD_KEY, formatBytes, hotkeyParts } from '#lib/utils/format.ts';
 
   type Key = keyof AppSettings;
   type BooleanKey = { [K in Key]: AppSettings[K] extends boolean ? K : never }[Key];
@@ -369,7 +369,9 @@
             <SettingRow
               id="ignore_sensitive"
               label="Ignore passwords"
-              description="Skip copies that password managers mark as concealed or transient (macOS and Windows)."
+              description={IS_MAC || IS_WINDOWS
+                ? 'Skip copies that password managers mark as concealed or transient.'
+                : "Not available on Linux: Clipsa doesn't detect copies from password managers there."}
             >
               <Switch
                 slot="control"
@@ -391,10 +393,15 @@
             <div class="px-4 py-3.5">
               <label for="excluded_app_input" class="block text-sm font-medium text-fg">Excluded apps</label>
               <p class="mt-0.5 text-xs leading-relaxed text-muted">
-                Nothing is saved while one of these apps is in front. Use the bundle identifier on macOS (e.g.
-                <code class="rounded-sm bg-fg/6 px-1 text-[11px] text-fg-2">com.1password.1password</code>) or the
-                executable name on Windows (e.g. <code class="rounded-sm bg-fg/6 px-1 text-[11px] text-fg-2">KeePass.exe</code>).
-                Not supported on Linux.
+                {#if IS_MAC}
+                  Nothing is saved while one of these apps is in front. Use the app's bundle identifier (e.g.
+                  <code class="rounded-sm bg-fg/6 px-1 text-[11px] text-fg-2">com.1password.1password</code>).
+                {:else if IS_WINDOWS}
+                  Nothing is saved while one of these apps is in front. Use the app's executable name (e.g.
+                  <code class="rounded-sm bg-fg/6 px-1 text-[11px] text-fg-2">KeePass.exe</code>).
+                {:else}
+                  Not available on Linux: Clipsa can't tell which app a copy comes from there.
+                {/if}
               </p>
               {#if draft.excluded_apps.length > 0}
                 <ul class="mt-3 divide-y divide-line overflow-hidden rounded-lg border border-line" aria-label="Excluded apps">
@@ -420,7 +427,7 @@
                   id="excluded_app_input"
                   type="text"
                   class="input font-mono text-xs {fieldErrors.excluded_apps ? 'input-invalid' : ''}"
-                  placeholder="com.example.app or example.exe"
+                  placeholder={IS_WINDOWS ? 'example.exe' : 'com.example.app'}
                   autocapitalize="off"
                   autocomplete="off"
                   spellcheck="false"
@@ -453,8 +460,7 @@
                   Not available: set up Windows Hello (PIN, face or fingerprint) in Windows Settings → Accounts →
                   Sign-in options, then restart Clipsa.
                 {:else}
-                  Not available on this system: Clipsa can only use Touch ID or your login password on macOS and
-                  Windows Hello on Windows.
+                  Not available on this system: Clipsa can't ask for Touch ID, a password or Windows Hello here.
                 {/if}
               </svelte:fragment>
               <Switch
@@ -676,7 +682,9 @@
             <SettingRow
               id="auto_install_updates"
               label="Automatically download and install updates"
-              description="Installs new versions in the background without asking; they are used the next time Clipsa starts. On Windows, Clipsa restarts to finish installing."
+              description={IS_WINDOWS
+                ? 'Installs new versions in the background without asking. Clipsa restarts to finish installing.'
+                : 'Installs new versions in the background without asking; they are used the next time Clipsa starts.'}
               disabled={!draft.check_for_updates}
             >
               <Switch

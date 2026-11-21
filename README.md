@@ -143,7 +143,7 @@ On Linux, Clipsa can't tell which app owns a copy and can't see password-manager
 <details>
 <summary><b>Mac App Store edition</b> (coming)</summary>
 
-A paid Mac App Store edition is planned as an optional way to support the project. It is the same app, with these differences required by the App Store sandbox:
+A Mac App Store edition is coming, for people who prefer installing and updating through the App Store. It is the same app, with these differences required by the App Store sandbox:
 
 - In the picker, <kbd>Enter</kbd> (and <kbd>⌘1</kbd>–<kbd>⌘9</kbd>) **copies** the item and closes the picker; press <kbd>⌘</kbd> <kbd>V</kbd> yourself. The sandbox doesn't allow sending keystrokes to other apps, so no Accessibility permission is involved.
 - Updates come from the App Store; there is no built-in updater.
