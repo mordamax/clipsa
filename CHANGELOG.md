@@ -20,6 +20,8 @@ it for users; see [Release notes](./docs/deployment.md#release-notes) for the fo
 ### Changed
 
 - The quick picker opens with an empty search every time, so your latest copies are on top instead of the results of your previous search.
+- The [privacy policy](https://clipsa.dev/privacy) now says "get" instead of "buy" for the Mac App Store edition, which will start out free. Nothing changes in what is collected: nothing.
+- Settings only explains how things work on your own system: for example, excluded apps on a Mac ask for a bundle identifier, without the Windows and Linux notes.
 
 ## [0.1.4] - 2026-11-17
 
