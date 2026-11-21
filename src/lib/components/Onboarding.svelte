@@ -9,12 +9,14 @@
   import { settings, updateSettings } from '#lib/stores/settings.ts';
   import type { Permissions } from '#lib/types/clipboard.ts';
   import { errorMessage } from '#lib/utils/errors.ts';
-  import { MOD_KEY, hotkeyParts } from '#lib/utils/format.ts';
+  import { IS_MAC, IS_WINDOWS, MOD_KEY, hotkeyParts } from '#lib/utils/format.ts';
 
   /** No default: the user explicitly decides whether Clipsa may go online. */
   let updates: 'yes' | 'no' | null = null;
   let permissions: Permissions | null = null;
   let saving = false;
+  /** The last attempt to create the key failed; the button offers a retry. */
+  let keyFailed = false;
   let errorText = '';
   let step = 0;
   let heading: HTMLHeadingElement;
@@ -22,10 +24,14 @@
   /** Only direct-download builds have an updater to ask about. */
   $: canFinish = $buildInfoLoaded && (!$buildInfo.self_update || updates !== null);
   $: askAccessibility = permissions !== null && permissions.accessibility !== 'not_required';
-  /** The last step only exists when there is something to set up. */
-  $: stepCount = askAccessibility || $buildInfo.self_update ? 3 : 2;
+  /** The choices step only exists when there is something to set up. */
+  $: setupStep = askAccessibility || $buildInfo.self_update ? 2 : -1;
+  /** The encryption key step is always last: the key is created only there. */
+  $: stepCount = setupStep === -1 ? 3 : 4;
   $: if (step > stepCount - 1) step = stepCount - 1;
   $: last = step === stepCount - 1;
+  $: canContinue = step !== setupStep || canFinish;
+  $: appStore = $buildInfo.edition === 'app_store';
 
   const points: [IconName, string, string][] = [
     ['lock', 'Stays on this device', 'History is encrypted with a key kept in your system keychain. Nothing is uploaded.'],
@@ -61,10 +67,24 @@
     heading?.focus({ preventScroll: true });
   }
 
+  /**
+   * Create the encryption key (this is the first time Clipsa touches the
+   * keychain), which also starts capturing, then remember that the welcome
+   * screen is done.
+   */
   async function finish() {
     if (!canFinish) return;
     saving = true;
     errorText = '';
+    try {
+      await invoke('set_up_encryption');
+      keyFailed = false;
+    } catch (err) {
+      keyFailed = true;
+      errorText = errorMessage(err);
+      saving = false;
+      return;
+    }
     try {
       await updateSettings(
         $buildInfo.self_update
@@ -168,7 +188,7 @@
       <p class="mt-4 text-xs text-subtle">
         Clipsa keeps running in the menu bar or system tray when you close its window.
       </p>
-    {:else}
+    {:else if step === setupStep}
       <p class="eyebrow mt-6">Set up</p>
       <h1 bind:this={heading} tabindex="-1" class="mt-1.5 text-2xl font-semibold tracking-tight text-fg outline-hidden">
         A couple of choices.
@@ -222,31 +242,79 @@
           </div>
         </fieldset>
       {/if}
+    {:else}
+      <p class="eyebrow mt-6">Encryption</p>
+      <h1 bind:this={heading} tabindex="-1" class="mt-1.5 text-2xl font-semibold tracking-tight text-fg outline-hidden">
+        Your history, locked with your key.
+      </h1>
+      <p class="mt-2 text-sm text-muted">
+        Before saving anything, Clipsa creates a secret key that encrypts every item it saves.
+        {#if appStore}
+          The key is kept in your Mac's keychain, where only Clipsa can read it.
+        {:else if IS_MAC}
+          The key is kept in your Mac's keychain.
+        {:else if IS_WINDOWS}
+          The key is kept in Windows Credential Manager.
+        {:else}
+          The key is kept in your system keyring.
+        {/if}
+        Nothing is uploaded.
+      </p>
+      {#if IS_MAC && !appStore}
+        <div class="mt-5 flex items-start gap-3 rounded-xl border border-line p-4">
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent-text dark:bg-accent/20">
+            <Icon name="lock" size={16} />
+          </span>
+          <p class="text-xs text-muted">
+            macOS may ask whether Clipsa can use its key in your keychain. Choose
+            <span class="font-medium text-fg">Always Allow</span>; otherwise macOS asks again every time Clipsa starts.
+          </p>
+        </div>
+      {:else if !IS_MAC && !IS_WINDOWS}
+        <div class="mt-5 flex items-start gap-3 rounded-xl border border-line p-4">
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent-text dark:bg-accent/20">
+            <Icon name="lock" size={16} />
+          </span>
+          <p class="text-xs text-muted">
+            Your desktop may ask you to unlock your keyring, or to create one with a password. Clipsa needs it to keep
+            its key.
+          </p>
+        </div>
+      {/if}
+      <p class="mt-4 text-xs text-subtle">Clipsa starts saving what you copy after this step.</p>
     {/if}
 
     {#if errorText}
       <p class="notice-danger mt-4" role="alert">
         <Icon name="alert" size={14} class="mt-0.5 shrink-0 text-danger" />
-        <span>{errorText}</span>
+        <span>
+          {#if keyFailed}
+            Clipsa couldn't set up its key, so it can't save history yet. Nothing has been saved.
+            {#if IS_MAC && !appStore}If you clicked Deny, click Try again and choose Always Allow.{/if}
+            <span class="mt-1 block text-2xs opacity-80">Details: {errorText}</span>
+          {:else}
+            {errorText}
+          {/if}
+        </span>
       </p>
     {/if}
 
     <div class="mt-7 flex items-center gap-2">
       {#if step > 0}
-        <button type="button" class="btn-ghost" on:click={() => go(step - 1)}>Back</button>
+        <button type="button" class="btn-ghost" disabled={saving} on:click={() => go(step - 1)}>Back</button>
       {/if}
       <span class="ml-auto"></span>
       {#if last}
         <button type="button" class="btn-primary" disabled={!canFinish || saving} on:click={finish}>
-          {saving ? 'Saving…' : 'Start using Clipsa'}
+          {saving ? 'Setting up…' : keyFailed ? 'Try again' : 'Create key and start'}
         </button>
       {:else}
-        <button type="button" class="btn-primary" on:click={() => go(step + 1)}>
+        <button type="button" class="btn-primary" disabled={!canContinue} on:click={() => go(step + 1)}>
           Continue <Icon name="chevron-right" size={14} />
         </button>
       {/if}
     </div>
-    {#if last && $buildInfo.self_update && updates === null}
+    {#if step === setupStep && $buildInfo.self_update && updates === null}
       <p class="mt-2 text-right text-2xs text-subtle">Choose whether to check for updates to continue.</p>
     {/if}
   </section>
