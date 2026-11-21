@@ -50,6 +50,7 @@
       <h2 id="toc-title">Releases</h2>
       <ol>
         <!-- clipsa:toc -->
+        <li><a href="#v0.1.5">Clipsa 0.1.5</a></li>
         <li><a href="#v0.1.4">Clipsa 0.1.4</a></li>
         <li><a href="#v0.1.3">Clipsa 0.1.3</a></li>
         <li><a href="#v0.1.2">Clipsa 0.1.2</a></li>
@@ -61,10 +62,27 @@
 
     <article class="prose changelog">
       <h1>Changelog</h1>
-      <p class="meta">Latest: Clipsa <!-- clipsa:version -->0.1.4<!-- /clipsa:version -->, <!-- clipsa:date --><time datetime="2026-11-17">17 November 2026</time><!-- /clipsa:date --></p>
+      <p class="meta">Latest: Clipsa <!-- clipsa:version -->0.1.5<!-- /clipsa:version -->, <!-- clipsa:date --><time datetime="2026-11-21">21 November 2026</time><!-- /clipsa:date --></p>
       <p>What changed in each release. Clipsa shows the same notes in its update window before you install an update. Downloads for every version are on <a href="https://github.com/mordamax/clipsa/releases">GitHub Releases</a>.</p>
 
       <!-- clipsa:releases -->
+      <section class="release" id="v0.1.5" aria-labelledby="v0.1.5-title">
+        <h2 id="v0.1.5-title">Clipsa 0.1.5</h2>
+        <p class="meta"><time datetime="2026-11-21">21 November 2026</time> · <a href="https://github.com/mordamax/clipsa/releases/tag/v0.1.5">Release on GitHub</a></p>
+        <h3>Added</h3>
+        <ul>
+          <li>Every release includes a <code>SHA256SUMS</code> file with the checksums of its installers.</li>
+          <li>The download buttons on <a href="https://clipsa.dev/#download">clipsa.dev</a> start the right installer for your system directly, then show how to install it and how to check the download.</li>
+        </ul>
+        <h3>Changed</h3>
+        <ul>
+          <li>First launch: the welcome screen now explains Clipsa's encryption key before creating it, and Clipsa only touches your keychain when you click <strong>Create key and start</strong>. Before, macOS could ask for keychain access before Clipsa had shown anything. Clipsa also starts saving what you copy only after the welcome screen. If the key can't be set up (for example, you clicked Deny), the welcome screen says so and offers <strong>Try again</strong> instead of closing Clipsa.</li>
+          <li>The quick picker opens with an empty search box every time, instead of keeping your previous search.</li>
+          <li>The <a href="https://clipsa.dev/privacy">privacy policy</a> now says &quot;get&quot; instead of &quot;buy&quot; for the Mac App Store edition, which will start out free. Nothing changes in what is collected: nothing.</li>
+          <li>Settings only explains how things work on your own system: for example, excluded apps on a Mac ask for a bundle identifier, without the Windows and Linux notes.</li>
+        </ul>
+      </section>
+
       <section class="release" id="v0.1.4" aria-labelledby="v0.1.4-title">
         <h2 id="v0.1.4-title">Clipsa 0.1.4</h2>
         <p class="meta"><time datetime="2026-11-17">17 November 2026</time> · <a href="https://github.com/mordamax/clipsa/releases/tag/v0.1.4">Release on GitHub</a></p>

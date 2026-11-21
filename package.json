@@ -1,6 +1,6 @@
 {
   "name": "clipsa",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Clipsa — a private, encrypted clipboard history manager for macOS, Windows and Linux.",
   "type": "module",
   "scripts": {
