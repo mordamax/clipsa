@@ -28,7 +28,14 @@ pub const KEY_LEN: usize = 32;
 const NONCE_LEN: usize = 12;
 const TAG_LEN: usize = 16;
 
+/// The Mac App Store edition keeps its history in its sandbox container,
+/// separate from the direct download, so it also has its own keychain entry.
+/// Sharing one would make macOS ask the second edition installed for access
+/// to the first one's key, because the two are signed differently.
+#[cfg(not(feature = "app-store"))]
 const KEYCHAIN_SERVICE: &str = "clipsa";
+#[cfg(feature = "app-store")]
+const KEYCHAIN_SERVICE: &str = "clipsa-app-store";
 const KEYCHAIN_ACCOUNT: &str = "encryption_key";
 
 /// Persistent storage for the serialized master key.

@@ -262,6 +262,9 @@
     refreshCanPaste();
     errorText = '';
     selected = 0;
+    // Every opening starts with an empty search, not the previous one.
+    search = '';
+    clearTimeout(searchTimer);
     await refreshLockState();
     if (!$lockState.locked) {
       await showList();
