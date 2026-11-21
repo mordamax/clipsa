@@ -16,7 +16,7 @@ This document describes what Clipsa actually does to protect clipboard history a
 | Nonce | Random 96-bit nonce per encryption, stored with the ciphertext |
 | What is encrypted | Item content (text, HTML and its plain-text alternative, PNG bytes, file path lists), the list preview (text excerpt or image thumbnail) and the optional item title |
 | What is **not** encrypted | Content type, size, created/last-used timestamps, the pinned flag, the HMAC dedup tag, settings. The database itself is ordinary SQLite (no SQLCipher). |
-| Master key | 256 random bits, created on first run, stored in the OS keychain via `keyring` 3: macOS Keychain, Windows Credential Manager, Linux Secret Service. Service `clipsa`, account `encryption_key`; the Mac App Store edition uses service `clipsa-app-store`, so having both editions installed never makes one ask for the other's key. |
+| Master key | 256 random bits, created when the user completes the first-run screen (which explains the keychain first; nothing is captured before). Direct download: stored via `keyring` 3 in the macOS login keychain, Windows Credential Manager or Linux Secret Service, service `clipsa`, account `encryption_key`. Mac App Store edition: stored in the macOS data protection keychain (service `clipsa-app-store`), which only that app's keychain access group can read, so macOS never asks the user for access. |
 | Dedup | HMAC-SHA256 over the content, keyed with a sub-key derived from the master key via HKDF. No plain SHA hash of content is stored, so known content cannot be confirmed by hashing it. |
 | Key material in memory | Key buffers use `zeroize` and are wiped on drop |
 | Search | There is no plaintext index. A search decrypts matching-type items one at a time in memory, compares, and wipes each decrypted copy (`Zeroizing` / `ZeroizeOnDrop`). Image content is never loaded for search; images match by title only. Results carry only the decrypted preview (≤300 characters) and title, as the list always does. |
@@ -25,7 +25,7 @@ Items that fail to decrypt (for example, after a key change) are still listed wi
 
 ### Keychain failure policy
 
-If the keychain is unavailable or access is denied, Clipsa shows a dialog and exits. It does **not** generate a replacement key, because that would make all existing history permanently unreadable.
+Clipsa never generates a replacement key when the keychain is unavailable or access is denied, because that would make all existing history permanently unreadable. On first run, the first-run screen shows the error and a **Try again** button; nothing has been saved yet. Later starts show a dialog with **Try Again** and **Quit**.
 
 ### Development builds
 

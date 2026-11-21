@@ -34,6 +34,9 @@ pub enum ClipsaError {
     /// A refused request whose message is shown to the user verbatim.
     #[error("{0}")]
     Rejected(String),
+    /// History commands before the first-run screen created the key.
+    #[error("Clipsa isn't set up yet. Finish the welcome screen first.")]
+    NotSetUp,
     #[error("Application startup failed: {0}")]
     ApplicationStartup(String),
 }

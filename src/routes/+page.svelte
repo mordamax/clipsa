@@ -269,11 +269,13 @@
       if (!locked) loadAll();
     });
 
+    // Before the welcome screen is completed there is no key and no history;
+    // completing it emits clipboard://changed, which loads everything.
     ensureSettings().then(() => {
       if (destroyed) return;
       started = true;
       clipboardActions.setPageSize(get(settings).items_per_page);
-      loadAll();
+      if (get(settings).onboarding_completed) loadAll();
     });
 
     return () => {

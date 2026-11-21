@@ -11,7 +11,7 @@ pub mod storage;
 mod updater;
 
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex, OnceLock, RwLock};
 use std::time::{Duration, Instant};
 
 use tauri::menu::{IsMenuItem, Menu, MenuItem, PredefinedMenuItem};
@@ -41,7 +41,11 @@ const EVENT_MAIN_NAVIGATE: &str = "main://navigate";
 const LAUNCHED_AT_LOGIN_ARG: &str = "--launched-at-login";
 
 struct AppState {
-    service: Arc<ClipboardService>,
+    /// Set by `activate` once the encryption key is loaded: at startup for
+    /// returning users, from the first-run screen for new ones.
+    service: OnceLock<Arc<ClipboardService>>,
+    /// Serialises `activate`.
+    activation: Mutex<()>,
     storage: Arc<ClipboardStorage>,
     platform: Arc<Platform>,
     settings: Arc<RwLock<AppSettings>>,
@@ -88,12 +92,14 @@ fn data_dir() -> ClipsaResult<PathBuf> {
 
 fn key_store(data_dir: &std::path::Path) -> ClipsaResult<Box<dyn KeyStore>> {
     if cfg!(debug_assertions) {
-        Ok(Box::new(crypto::FileKeyStore::new(
+        return Ok(Box::new(crypto::FileKeyStore::new(
             data_dir.join("dev.key"),
-        )))
-    } else {
-        Ok(Box::new(crypto::KeychainStore::new()?))
+        )));
     }
+    #[cfg(feature = "app-store")]
+    return Ok(Box::new(crypto::ProtectedKeychainStore));
+    #[cfg(not(feature = "app-store"))]
+    Ok(Box::new(crypto::KeychainStore::new()?))
 }
 
 pub fn run() {
@@ -169,6 +175,7 @@ pub fn run() {
             get_lock_state,
             unlock,
             lock_now,
+            set_up_encryption,
             #[cfg(feature = "self-update")]
             updater::show_updater,
             #[cfg(feature = "self-update")]
@@ -187,73 +194,36 @@ pub fn run() {
     });
 }
 
-/// Initialise the app. On failure, explain and offer to retry (keychain
-/// errors, e.g. a denied or dismissed access prompt) or quit.
+/// Initialise the app. Startup errors other than the key (data directory,
+/// database) can't be fixed from inside Clipsa: explain and quit.
 fn start(app: &AppHandle) {
-    let Err(e) = initialize(app) else {
-        return;
-    };
-    error!("Startup failed: {e}");
-    for window in app.webview_windows().values() {
-        let _ = window.hide();
-    }
-    // Keychain access fails before anything is set up, so retrying is safe.
-    let retryable = matches!(e, ClipsaError::KeyManagement(_));
-    let buttons = if retryable {
-        MessageDialogButtons::OkCancelCustom("Try Again".into(), "Quit".into())
-    } else {
-        MessageDialogButtons::OkCustom("Quit".into())
-    };
-    let handle = app.clone();
-    app.dialog()
-        .message(startup_error_message(&e))
-        .title("Clipsa could not start")
-        .kind(MessageDialogKind::Error)
-        .buttons(buttons)
-        .show(move |try_again| {
-            if retryable && try_again {
-                let main = handle.clone();
-                let _ = handle.run_on_main_thread(move || start(&main));
-            } else {
-                handle.exit(1);
-            }
-        });
-}
-
-fn startup_error_message(e: &ClipsaError) -> String {
-    match e {
-        ClipsaError::KeyManagement(detail) => format!(
-            "Clipsa could not access its encryption key in the system keychain, \
-             so it can't open your history. Nothing has been changed or deleted.\n\n\
-             Click Try Again, then choose \"Always Allow\" when macOS asks for \
-             keychain access.\n\nDetails: {detail}"
-        ),
-        other => format!("{other}"),
+    if let Err(e) = initialize(app) {
+        error!("Startup failed: {e}");
+        for window in app.webview_windows().values() {
+            let _ = window.hide();
+        }
+        let handle = app.clone();
+        app.dialog()
+            .message(e.to_string())
+            .title("Clipsa could not start")
+            .kind(MessageDialogKind::Error)
+            .buttons(MessageDialogButtons::OkCustom("Quit".into()))
+            .show(move |_| handle.exit(1));
     }
 }
 
+/// Everything that works without the encryption key. The key is only touched
+/// by `activate`: here for returning users, who have completed the first-run
+/// screen; new users see that screen first, which explains the keychain and
+/// calls `set_up_encryption`. Until then nothing is captured and the quick
+/// picker doesn't open.
 fn initialize(app: &AppHandle) -> ClipsaResult<()> {
     let data_dir = data_dir()?;
-    let crypto = Arc::new(CryptoManager::load_or_create(
-        key_store(&data_dir)?.as_ref(),
-    )?);
     let storage = Arc::new(ClipboardStorage::open(&ClipboardStorage::default_path(
         &data_dir,
     ))?);
     let settings = Arc::new(RwLock::new(storage.load_settings()?));
     let platform = Arc::new(Platform::new());
-
-    let emitter = app.clone();
-    let service = Arc::new(ClipboardService::new(
-        Arc::clone(&platform),
-        crypto,
-        Arc::clone(&storage),
-        Arc::clone(&settings),
-        Box::new(move || {
-            let _ = emitter.emit(EVENT_CLIPBOARD_CHANGED, ());
-        }),
-    ));
-    service.upgrade_legacy_items()?;
 
     let initial = settings.read().unwrap_or_else(|p| p.into_inner()).clone();
     let tray = build_tray(app, &initial)?;
@@ -264,7 +234,8 @@ fn initialize(app: &AppHandle) -> ClipsaResult<()> {
 
     let lock = Arc::new(AppLock::new(initial.app_lock && platform.auth_supported()));
     app.manage(AppState {
-        service: Arc::clone(&service),
+        service: OnceLock::new(),
+        activation: Mutex::new(()),
         storage,
         platform,
         settings,
@@ -273,9 +244,6 @@ fn initialize(app: &AppHandle) -> ClipsaResult<()> {
         lock,
     });
 
-    if let Err(e) = register_hotkey(app, &initial.global_hotkey) {
-        warn!("Global hotkey `{}` unavailable: {e}", initial.global_hotkey);
-    }
     #[cfg(not(feature = "app-store"))]
     match autostart_entry(app) {
         Ok(entry) => {
@@ -287,7 +255,6 @@ fn initialize(app: &AppHandle) -> ClipsaResult<()> {
         warn!("Could not sync launch-at-login: {e}");
     }
 
-    service.spawn_background();
     spawn_lock_timer(app.clone());
     #[cfg(feature = "self-update")]
     updater::create_window(app);
@@ -298,6 +265,98 @@ fn initialize(app: &AppHandle) -> ClipsaResult<()> {
         show_main_window(app);
     }
     info!("Clipsa initialised (data in {})", data_dir.display());
+    if initial.onboarding_completed {
+        activate_at_startup(app);
+    }
+    Ok(())
+}
+
+/// Load the key for a returning user. If the keychain refuses (e.g. a denied
+/// or dismissed access prompt), explain and offer to retry or quit.
+fn activate_at_startup(app: &AppHandle) {
+    let Err(e) = activate(app) else {
+        return;
+    };
+    error!("Could not load the encryption key: {e}");
+    let windows: Vec<_> = app
+        .webview_windows()
+        .into_values()
+        .filter(|w| w.is_visible().unwrap_or(false))
+        .collect();
+    for window in &windows {
+        let _ = window.hide();
+    }
+    // Nothing has been set up yet when the key fails, so retrying is safe.
+    let retryable = matches!(e, ClipsaError::KeyManagement(_));
+    let buttons = if retryable {
+        MessageDialogButtons::OkCancelCustom("Try Again".into(), "Quit".into())
+    } else {
+        MessageDialogButtons::OkCustom("Quit".into())
+    };
+    let handle = app.clone();
+    app.dialog()
+        .message(key_error_message(&e))
+        .title("Clipsa could not open your history")
+        .kind(MessageDialogKind::Error)
+        .buttons(buttons)
+        .show(move |try_again| {
+            if retryable && try_again {
+                let main = handle.clone();
+                let _ = handle.run_on_main_thread(move || {
+                    for window in &windows {
+                        let _ = window.show();
+                    }
+                    activate_at_startup(&main);
+                });
+            } else {
+                handle.exit(1);
+            }
+        });
+}
+
+fn key_error_message(e: &ClipsaError) -> String {
+    match e {
+        ClipsaError::KeyManagement(detail) => format!(
+            "Clipsa could not access its encryption key in the system keychain, \
+             so it can't open your history. Nothing has been changed or deleted.\n\n\
+             Click Try Again, then choose \"Always Allow\" if macOS asks for \
+             keychain access.\n\nDetails: {detail}"
+        ),
+        other => format!("{other}"),
+    }
+}
+
+/// Load (or, on first run, create) the encryption key, then start capturing
+/// and enable the quick picker. Does nothing once done.
+fn activate(app: &AppHandle) -> ClipsaResult<()> {
+    let state = app.state::<AppState>();
+    let _serialised = state.activation.lock().unwrap_or_else(|p| p.into_inner());
+    if state.service.get().is_some() {
+        return Ok(());
+    }
+    let crypto = Arc::new(CryptoManager::load_or_create(
+        key_store(&data_dir()?)?.as_ref(),
+    )?);
+    let emitter = app.clone();
+    let service = Arc::new(ClipboardService::new(
+        Arc::clone(&state.platform),
+        crypto,
+        Arc::clone(&state.storage),
+        Arc::clone(&state.settings),
+        Box::new(move || {
+            let _ = emitter.emit(EVENT_CLIPBOARD_CHANGED, ());
+        }),
+    ));
+    service.upgrade_legacy_items()?;
+    let _ = state.service.set(Arc::clone(&service));
+
+    let hotkey = state.settings().global_hotkey;
+    if let Err(e) = register_hotkey(app, &hotkey) {
+        warn!("Global hotkey `{hotkey}` unavailable: {e}");
+    }
+    service.spawn_background();
+    let _ = app.emit(EVENT_CLIPBOARD_CHANGED, ());
+    info!("Encryption key loaded; capturing");
     Ok(())
 }
 
@@ -465,7 +524,19 @@ fn show_main_window(app: &AppHandle) {
     }
 }
 
+/// Whether the encryption key is loaded (see `activate`).
+fn is_active(app: &AppHandle) -> bool {
+    app.try_state::<AppState>()
+        .is_some_and(|state| state.service.get().is_some())
+}
+
+/// Before the first-run screen is completed there is no history to pick
+/// from: show that screen instead.
 fn show_picker(app: &AppHandle) {
+    if !is_active(app) {
+        show_main_window(app);
+        return;
+    }
     if let Some(picker) = app.get_webview_window(PICKER_WINDOW) {
         let _ = picker.center();
         let _ = picker.show();
@@ -595,7 +666,9 @@ fn apply_settings_patch(
         state.tray.show_hotkey(&new.global_hotkey);
     }
     if new.max_items != old.max_items || new.auto_cleanup_days != old.auto_cleanup_days {
-        state.service.enforce_limits()?;
+        if let Some(service) = state.service.get() {
+            service.enforce_limits()?;
+        }
     }
     let _ = app.emit(EVENT_SETTINGS_CHANGED, &new);
     Ok(new)
@@ -613,7 +686,10 @@ impl AppState {
     /// The history service, unless Clipsa is locked.
     fn unlocked(&self) -> ClipsaResult<&ClipboardService> {
         self.lock.ensure_unlocked()?;
-        Ok(&self.service)
+        self.service
+            .get()
+            .map(Arc::as_ref)
+            .ok_or(ClipsaError::NotSetUp)
     }
 }
 
@@ -830,10 +906,15 @@ fn open_main_window(app: AppHandle, path: String) -> CommandResult<()> {
     Ok(())
 }
 
-/// Used by the picker, the tray and the app menu.
+/// Used by the picker, the tray and the app menu. Before the first-run screen
+/// is completed it only brings that screen up.
 fn open_main_page(app: &AppHandle, path: &str) {
     if let Some(picker) = app.get_webview_window(PICKER_WINDOW) {
         let _ = picker.hide();
+    }
+    if !is_active(app) {
+        show_main_window(app);
+        return;
     }
     show_main_window(app);
     let _ = app.emit_to(MAIN_WINDOW, EVENT_MAIN_NAVIGATE, path);
@@ -877,6 +958,13 @@ fn get_lock_state(state: tauri::State<'_, AppState>) -> LockState {
 fn unlock(app: AppHandle, state: tauri::State<'_, AppState>) -> CommandResult<LockState> {
     to_command(state.lock.unlock(&state.platform))?;
     Ok(emit_lock_state(&app, &state))
+}
+
+/// Called by the first-run screen after it has explained the keychain: create
+/// the encryption key and start capturing. Safe to call again after a failure.
+#[tauri::command(async, rename_all = "snake_case")]
+fn set_up_encryption(app: AppHandle) -> CommandResult<()> {
+    to_command(activate(&app))
 }
 
 #[tauri::command(async, rename_all = "snake_case")]

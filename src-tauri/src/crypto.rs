@@ -29,9 +29,8 @@ const NONCE_LEN: usize = 12;
 const TAG_LEN: usize = 16;
 
 /// The Mac App Store edition keeps its history in its sandbox container,
-/// separate from the direct download, so it also has its own keychain entry.
-/// Sharing one would make macOS ask the second edition installed for access
-/// to the first one's key, because the two are signed differently.
+/// separate from the direct download, so it also has its own key, in the data
+/// protection keychain (see `ProtectedKeychainStore`).
 #[cfg(not(feature = "app-store"))]
 const KEYCHAIN_SERVICE: &str = "clipsa";
 #[cfg(feature = "app-store")]
@@ -46,12 +45,14 @@ pub trait KeyStore: Send + Sync {
     fn store(&self, secret: &str) -> ClipsaResult<()>;
 }
 
-/// Master key in the OS keychain (macOS Keychain, Windows Credential Manager,
-/// Linux Secret Service).
+/// Master key in the OS keychain (macOS login keychain, Windows Credential
+/// Manager, Linux Secret Service). Used by the direct-download edition.
+#[cfg(not(feature = "app-store"))]
 pub struct KeychainStore {
     entry: keyring::Entry,
 }
 
+#[cfg(not(feature = "app-store"))]
 impl KeychainStore {
     pub fn new() -> ClipsaResult<Self> {
         let entry = keyring::Entry::new(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT)
@@ -60,6 +61,7 @@ impl KeychainStore {
     }
 }
 
+#[cfg(not(feature = "app-store"))]
 impl KeyStore for KeychainStore {
     fn load(&self) -> ClipsaResult<Option<String>> {
         match self.entry.get_password() {
@@ -75,6 +77,57 @@ impl KeyStore for KeychainStore {
         self.entry.set_password(secret).map_err(|e| {
             ClipsaError::KeyManagement(format!(
                 "Could not save the encryption key to the system keychain: {e}"
+            ))
+        })
+    }
+}
+
+/// Master key in the macOS data protection keychain, the store Apple
+/// recommends for sandboxed apps. Items there belong to the app's keychain
+/// access group (from its `application-identifier` entitlement), so only this
+/// app can read them and macOS never asks the user whether it may. The login
+/// keychain used by `KeychainStore` asks whenever the entry was created by a
+/// differently signed app, e.g. an earlier or the direct-download Clipsa.
+#[cfg(feature = "app-store")]
+pub struct ProtectedKeychainStore;
+
+#[cfg(feature = "app-store")]
+impl ProtectedKeychainStore {
+    /// `errSecItemNotFound`.
+    const NOT_FOUND: i32 = -25300;
+
+    fn options() -> security_framework::passwords::PasswordOptions {
+        let mut options = security_framework::passwords::PasswordOptions::new_generic_password(
+            KEYCHAIN_SERVICE,
+            KEYCHAIN_ACCOUNT,
+        );
+        options.use_protected_keychain();
+        options
+    }
+}
+
+#[cfg(feature = "app-store")]
+impl KeyStore for ProtectedKeychainStore {
+    fn load(&self) -> ClipsaResult<Option<String>> {
+        match security_framework::passwords::generic_password(Self::options()) {
+            Ok(secret) => String::from_utf8(secret).map(Some).map_err(|_| {
+                ClipsaError::KeyManagement("The stored encryption key is not valid text".into())
+            }),
+            Err(e) if e.code() == Self::NOT_FOUND => Ok(None),
+            Err(e) => Err(ClipsaError::KeyManagement(format!(
+                "Could not read the encryption key from the keychain: {e}"
+            ))),
+        }
+    }
+
+    fn store(&self, secret: &str) -> ClipsaResult<()> {
+        security_framework::passwords::set_generic_password_options(
+            secret.as_bytes(),
+            Self::options(),
+        )
+        .map_err(|e| {
+            ClipsaError::KeyManagement(format!(
+                "Could not save the encryption key to the keychain: {e}"
             ))
         })
     }
