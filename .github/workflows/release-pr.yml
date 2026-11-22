@@ -12,7 +12,7 @@ name: Release PR
 #    starts the release workflow.
 #
 # Merging the release PR is the maintainer's approval of the release. Both
-# jobs act through a short-lived token of the Clipsa Homebrew GitHub App
+# jobs act through a short-lived token of the clipsa-release-bot GitHub App
 # (environment `release-pr`, master only): GitHub doesn't run workflows for
 # pull requests or tags created with GITHUB_TOKEN, so CI wouldn't check the
 # release PR and the tag wouldn't start the release.
