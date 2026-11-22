@@ -38,7 +38,7 @@ cargo clippy --all-targets --features app-store -- -D warnings   # macOS only
 cargo test --all-targets --features self-update
 ```
 
-Rust tests live next to the code in `#[cfg(test)]` modules. Tests must never use the real OS keychain. Construct crypto/storage with an injected key and a temporary directory (`tempfile`).
+New functionality comes with tests that check its behaviour, and a bug fix comes with a test that fails without the fix. Rust tests live next to the code in `#[cfg(test)]` modules. Tests must never use the real OS keychain. Construct crypto/storage with an injected key and a temporary directory (`tempfile`).
 
 ## Guidelines
 
