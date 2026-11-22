@@ -271,12 +271,52 @@ fn initialize(app: &AppHandle) -> ClipsaResult<()> {
     Ok(())
 }
 
-/// Load the key for a returning user. If the keychain refuses (e.g. a denied
-/// or dismissed access prompt), explain and offer to retry or quit.
+/// Load the key for a returning user. If Clipsa started while the Mac was
+/// locked, wait in the background and load it once the Mac is unlocked; any
+/// other failure is explained in a dialog with Try Again and Quit.
 fn activate_at_startup(app: &AppHandle) {
-    let Err(e) = activate(app) else {
-        return;
-    };
+    match activate(app) {
+        Ok(()) => {}
+        Err(ClipsaError::KeychainLocked) => {
+            info!("The keychain is locked; loading the encryption key once the Mac is unlocked");
+            let app = app.clone();
+            std::thread::Builder::new()
+                .name("clipsa-unlock-wait".into())
+                .spawn(move || {
+                    let result = retry_while_locked(
+                        || activate(&app),
+                        || std::thread::sleep(UNLOCK_POLL_INTERVAL),
+                    );
+                    if let Err(e) = result {
+                        let main = app.clone();
+                        let _ = app.run_on_main_thread(move || show_key_error(&main, e));
+                    }
+                })
+                .expect("failed to spawn the unlock wait thread");
+        }
+        Err(e) => show_key_error(app, e),
+    }
+}
+
+const UNLOCK_POLL_INTERVAL: Duration = Duration::from_secs(2);
+
+/// Runs `attempt` until it succeeds or fails with anything but a locked
+/// keychain, calling `wait` between attempts.
+fn retry_while_locked(
+    mut attempt: impl FnMut() -> ClipsaResult<()>,
+    mut wait: impl FnMut(),
+) -> ClipsaResult<()> {
+    loop {
+        match attempt() {
+            Err(ClipsaError::KeychainLocked) => wait(),
+            result => return result,
+        }
+    }
+}
+
+/// Hides Clipsa's windows and explains the key error, with Try Again (for
+/// keychain errors) and Quit.
+fn show_key_error(app: &AppHandle, e: ClipsaError) {
     error!("Could not load the encryption key: {e}");
     let windows: Vec<_> = app
         .webview_windows()
@@ -977,7 +1017,8 @@ fn lock_now(app: AppHandle, state: tauri::State<'_, AppState>) -> LockState {
 
 #[cfg(test)]
 mod tests {
-    use super::is_main_window_path;
+    use super::{is_main_window_path, retry_while_locked};
+    use crate::error::ClipsaError;
 
     #[test]
     fn only_main_window_pages_can_be_opened() {
@@ -1000,5 +1041,34 @@ mod tests {
         ] {
             assert!(!is_main_window_path(bad), "{bad}");
         }
+    }
+
+    /// Clipsa started while the Mac was locked: it keeps waiting and opens the
+    /// history once the keychain is readable, without an error in between.
+    #[test]
+    fn startup_waits_until_the_keychain_is_unlocked() {
+        let mut results = vec![
+            Ok(()),
+            Err(ClipsaError::KeychainLocked),
+            Err(ClipsaError::KeychainLocked),
+        ];
+        let mut waits = 0;
+        let result = retry_while_locked(|| results.pop().unwrap(), || waits += 1);
+        assert!(result.is_ok());
+        assert_eq!(waits, 2);
+    }
+
+    /// Any other keychain error ends the wait, so the user gets the dialog
+    /// instead of a Clipsa that never opens.
+    #[test]
+    fn startup_stops_waiting_on_other_key_errors() {
+        let mut results = vec![
+            Err(ClipsaError::KeyManagement("denied".into())),
+            Err(ClipsaError::KeychainLocked),
+        ];
+        let mut waits = 0;
+        let result = retry_while_locked(|| results.pop().unwrap(), || waits += 1);
+        assert!(matches!(result, Err(ClipsaError::KeyManagement(_))));
+        assert_eq!(waits, 1);
     }
 }
