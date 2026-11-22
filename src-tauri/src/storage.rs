@@ -7,7 +7,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use chrono::{DateTime, TimeZone, Utc};
+use jiff::{SignedDuration, Timestamp};
 use rusqlite::{params, Connection, OptionalExtension, Row};
 use tracing::info;
 
@@ -25,7 +25,7 @@ pub struct NewItem {
     pub sealed_content: String,
     pub sealed_preview: String,
     pub size: u64,
-    pub at: DateTime<Utc>,
+    pub at: Timestamp,
 }
 
 #[derive(Debug, Clone)]
@@ -35,8 +35,8 @@ pub struct StoredItem {
     pub sealed_content: Option<String>,
     pub sealed_preview: Option<String>,
     pub size: u64,
-    pub created_at: DateTime<Utc>,
-    pub last_used_at: DateTime<Utc>,
+    pub created_at: Timestamp,
+    pub last_used_at: Timestamp,
     pub pinned: bool,
     pub sealed_title: Option<String>,
 }
@@ -73,8 +73,8 @@ pub enum SaveOutcome {
 pub struct Statistics {
     pub total_items: u64,
     pub total_size_bytes: u64,
-    pub oldest_item: Option<DateTime<Utc>>,
-    pub newest_item: Option<DateTime<Utc>>,
+    pub oldest_item: Option<Timestamp>,
+    pub newest_item: Option<Timestamp>,
 }
 
 pub struct ClipboardStorage {
@@ -183,7 +183,7 @@ impl ClipboardStorage {
             tx.execute_batch(sql)?;
             tx.execute(
                 "INSERT INTO migrations (version, applied_at) VALUES (?, ?)",
-                params![version, Utc::now().to_rfc3339()],
+                params![version, Timestamp::now().to_string()],
             )?;
             tx.commit()?;
         }
@@ -219,25 +219,25 @@ impl ClipboardStorage {
                 CURRENT_HASH_VERSION,
                 item.content_type.as_str(),
                 item.size as i64,
-                item.at.to_rfc3339(),
-                item.at.to_rfc3339(),
-                item.at.timestamp_millis(),
-                item.at.timestamp_millis(),
+                item.at.to_string(),
+                item.at.to_string(),
+                item.at.as_millisecond(),
+                item.at.as_millisecond(),
             ],
         )?;
         Ok(SaveOutcome::Inserted)
     }
 
-    fn touch(conn: &Connection, id: &str, at: DateTime<Utc>) -> ClipsaResult<()> {
+    fn touch(conn: &Connection, id: &str, at: Timestamp) -> ClipsaResult<()> {
         conn.execute(
             "UPDATE clipboard_items SET accessed_at = ?, accessed_at_timestamp = ? WHERE id = ?",
-            params![at.to_rfc3339(), at.timestamp_millis(), id],
+            params![at.to_string(), at.as_millisecond(), id],
         )?;
         Ok(())
     }
 
     /// Mark an item as just used (moves it to the top of the history).
-    pub fn mark_used(&self, id: &str, at: DateTime<Utc>) -> ClipsaResult<()> {
+    pub fn mark_used(&self, id: &str, at: Timestamp) -> ClipsaResult<()> {
         Self::touch(&self.conn(), id, at)
     }
 
@@ -335,8 +335,8 @@ impl ClipboardStorage {
                 CURRENT_HASH_VERSION,
                 item.content_type.as_str(),
                 item.size as i64,
-                item.at.to_rfc3339(),
-                item.at.timestamp_millis(),
+                item.at.to_string(),
+                item.at.as_millisecond(),
                 duplicate_pinned.unwrap_or(false),
                 id,
             ],
@@ -379,10 +379,11 @@ impl ClipboardStorage {
         let tx = conn.transaction()?;
         let mut deleted = 0;
         if cleanup_days > 0 {
-            let cutoff = Utc::now() - chrono::Duration::days(i64::from(cleanup_days));
+            let cutoff =
+                Timestamp::now() - SignedDuration::from_hours(i64::from(cleanup_days) * 24);
             deleted += tx.execute(
                 "DELETE FROM clipboard_items WHERE pinned = 0 AND accessed_at_timestamp < ?",
-                params![cutoff.timestamp_millis()],
+                params![cutoff.as_millisecond()],
             )?;
         }
         deleted += tx.execute(
@@ -408,8 +409,8 @@ impl ClipboardStorage {
         Ok(Statistics {
             total_items,
             total_size_bytes,
-            oldest_item: oldest.map(millis_to_datetime),
-            newest_item: newest.map(millis_to_datetime),
+            oldest_item: oldest.map(millis_to_timestamp),
+            newest_item: newest.map(millis_to_timestamp),
         })
     }
 
@@ -491,7 +492,7 @@ impl ClipboardStorage {
         let mut conn = self.conn();
         let tx = conn.transaction()?;
         tx.execute("DELETE FROM settings", [])?;
-        let now = Utc::now().to_rfc3339();
+        let now = Timestamp::now().to_string();
         if let serde_json::Value::Object(fields) = serde_json::to_value(settings)? {
             for (key, value) in fields {
                 tx.execute(
@@ -505,10 +506,8 @@ impl ClipboardStorage {
     }
 }
 
-fn millis_to_datetime(millis: i64) -> DateTime<Utc> {
-    Utc.timestamp_millis_opt(millis)
-        .single()
-        .unwrap_or_default()
+fn millis_to_timestamp(millis: i64) -> Timestamp {
+    Timestamp::from_millisecond(millis).unwrap_or(Timestamp::UNIX_EPOCH)
 }
 
 fn read_item(row: &Row<'_>) -> rusqlite::Result<StoredItem> {
@@ -520,8 +519,8 @@ fn read_item(row: &Row<'_>) -> rusqlite::Result<StoredItem> {
         sealed_content: row.get(2)?,
         sealed_preview: row.get(3)?,
         size: size.max(0) as u64,
-        created_at: millis_to_datetime(row.get(5)?),
-        last_used_at: millis_to_datetime(row.get(6)?),
+        created_at: millis_to_timestamp(row.get(5)?),
+        last_used_at: millis_to_timestamp(row.get(6)?),
         pinned: row.get(7)?,
         sealed_title: row.get(8)?,
     })
@@ -539,7 +538,7 @@ mod tests {
             sealed_content: "c".into(),
             sealed_preview: "p".into(),
             size: 1,
-            at: millis_to_datetime(at_millis),
+            at: millis_to_timestamp(at_millis),
         }
     }
 
@@ -562,7 +561,7 @@ mod tests {
     #[test]
     fn duplicate_content_bumps_existing_item_to_top() {
         let (_dir, storage) = storage();
-        let now = Utc::now().timestamp_millis();
+        let now = Timestamp::now().as_millisecond();
         let a = item("a", now - 3000);
         let a_id = a.id.clone();
         storage.save(a).unwrap();
@@ -581,7 +580,7 @@ mod tests {
     #[test]
     fn paging_reports_total_and_respects_offset() {
         let (_dir, storage) = storage();
-        let now = Utc::now().timestamp_millis();
+        let now = Timestamp::now().as_millisecond();
         for i in 0..5 {
             storage.save(item(&i.to_string(), now + i)).unwrap();
         }
@@ -599,7 +598,7 @@ mod tests {
     #[test]
     fn pinned_items_survive_retention_and_clear_and_sort_first() {
         let (_dir, storage) = storage();
-        let now = Utc::now().timestamp_millis();
+        let now = Timestamp::now().as_millisecond();
         let day = 86_400_000;
         let old = item("old", now - 400 * day);
         let old_id = old.id.clone();
@@ -653,7 +652,7 @@ mod tests {
     #[test]
     fn limits_prune_oldest_by_last_use_and_by_age() {
         let (_dir, storage) = storage();
-        let now = Utc::now().timestamp_millis();
+        let now = Timestamp::now().as_millisecond();
         let day = 86_400_000;
         storage.save(item("ancient", now - 40 * day)).unwrap();
         for i in 0..4 {
@@ -727,7 +726,7 @@ mod tests {
             .unwrap();
         assert!(storage.legacy_items().unwrap().is_empty());
         let upgraded = storage.get("old").unwrap().unwrap();
-        assert_eq!(upgraded.created_at.timestamp(), 1_700_000_000);
+        assert_eq!(upgraded.created_at.as_second(), 1_700_000_000);
         assert_eq!(upgraded.sealed_preview.as_deref(), Some("preview"));
     }
 }

@@ -218,7 +218,7 @@ impl CryptoManager {
         serde_json::json!({
             "id": uuid::Uuid::new_v4().to_string(),
             "key": BASE64.encode(key),
-            "created_at": chrono::Utc::now().to_rfc3339(),
+            "created_at": jiff::Timestamp::now().to_string(),
         })
         .to_string()
     }
