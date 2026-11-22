@@ -67,7 +67,7 @@ The repository is public and the release workflow holds keys that could ship cod
 - Secrets and inputs reach scripts through environment variables, never through `${{ }}` text substitution into shell code.
 
 **What code runs**
-- Every action is pinned to a full commit SHA, the repository requires SHA pinning, and only GitHub-owned actions plus `tauri-apps/tauri-action`, `dtolnay/rust-toolchain`, `Swatinem/rust-cache` and `pnpm/action-setup` are allowed. Dependabot proposes updates to the pins.
+- Every action is pinned to a full commit SHA, the repository requires SHA pinning, and only GitHub-owned actions plus `tauri-apps/tauri-action`, `dtolnay/rust-toolchain`, `Swatinem/rust-cache`, `pnpm/action-setup` and `ossf/scorecard-action` are allowed. Dependabot proposes updates to the pins.
 - Dependencies install from the committed lockfiles (`pnpm install --frozen-lockfile`, `Cargo.lock`). Release and App Store builds use no caches, so nothing written by an earlier run can leak into a signed build.
 - Dependabot alerts, Dependabot security updates, secret scanning and push protection are enabled.
 
@@ -75,6 +75,8 @@ The repository is public and the release workflow holds keys that could ship cod
 - `master` can't be force-pushed or deleted, and `v*` tags can't be moved or deleted (repository rulesets, no bypass). The tap's `main` branch has the same branch rule.
 - Releases are immutable once published, so assets such as `latest.json`, the DMGs and the updater bundles can't be swapped later.
 - The release and App Store workflows refuse to run when the tag doesn't match the app version.
+- Every installer the website links to has a signed build provenance attestation (`actions/attest-build-provenance`, over the files in `SHA256SUMS`). `gh attestation verify <file> -R mordamax/clipsa` checks that the file was built by `release.yml` in this repository from its version tag.
+- [OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/mordamax/clipsa) checks these practices every week (`scorecard.yml`) and publishes the result; its findings also appear in the repository's code scanning alerts.
 
 **Credential scope**
 - Notarization uses an App Store Connect API key with the Developer role, which can't read the Apple ID's iCloud data the way an app-specific password can.
