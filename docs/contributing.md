@@ -1,5 +1,7 @@
 # Contributing to Clipsa
 
+Everyone taking part in Clipsa's issues, discussions and pull requests follows the [Code of Conduct](../CODE_OF_CONDUCT.md).
+
 ## Setup
 
 Requirements: Rust stable (`rustup`), Node.js 22.17 or newer (SvelteKit 3 needs it), pnpm 9 and the [Tauri 2 system dependencies](https://v2.tauri.app/start/prerequisites/). On Debian/Ubuntu, CI installs:
