@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.6] - 2026-11-22
+
+### Fixed
+
+- Mac App Store edition: Clipsa no longer shows "Clipsa could not open your history" when it starts while your Mac is locked, for example after an automatic update. It opens your history as soon as you unlock. ([#46](https://github.com/mordamax/clipsa/pull/46))
+
 ## [0.1.5] - 2026-11-21
 
 ### Added
