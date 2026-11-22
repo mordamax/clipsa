@@ -383,7 +383,7 @@ jobs:
       - name: Start the Mac App Store build
         run: gh workflow run appstore.yml --ref "v$(scripts/app-version.sh)" -f upload=true -R "$GITHUB_REPOSITORY"
 
-  # Pushes the cask with a short-lived token from the Clipsa Homebrew GitHub
+  # Pushes the cask with a short-lived token from the clipsa-release-bot GitHub
   # App, limited to mordamax/homebrew-tap and contents: write (the App is also
   # installed on this repository for release-pr.yml).
   homebrew:

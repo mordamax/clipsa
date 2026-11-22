@@ -80,7 +80,7 @@ The repository is public and the release workflow holds keys that could ship cod
 
 **Credential scope**
 - Notarization uses an App Store Connect API key with the Developer role, which can't read the Apple ID's iCloud data the way an app-specific password can.
-- The Homebrew tap and the release PR bot use one-hour tokens minted from the Clipsa Homebrew GitHub App, installed on `mordamax/homebrew-tap` and `mordamax/clipsa` with Contents and Pull requests: write. Each job asks only for the repository and permissions it needs (the tap: its contents; the release PR: this repository's contents and pull requests). The App's private key is stored in two environments, `release` (tags only) and `release-pr` (`master` only); a leak of it could push to the tap or open PRs and create tags here, so it is rotated like the other keys below.
+- The Homebrew tap and the release PR bot use one-hour tokens minted from the clipsa-release-bot GitHub App, installed on `mordamax/homebrew-tap` and `mordamax/clipsa` with Contents and Pull requests: write. Each job asks only for the repository and permissions it needs (the tap: its contents; the release PR: this repository's contents and pull requests). The App's private key is stored in two environments, `release` (tags only) and `release-pr` (`master` only); a leak of it could push to the tap or open PRs and create tags here, so it is rotated like the other keys below.
 
 **If a key leaks:** revoke the Developer ID certificate (developer.apple.com → Certificates) and the API key (App Store Connect → Users and Access → Integrations), regenerate the GitHub App's private key, and rotate the updater key by publishing one last update signed with the old key that carries the new public key.
 
