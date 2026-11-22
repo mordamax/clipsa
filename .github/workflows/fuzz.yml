@@ -30,17 +30,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-        with:
-          version: 9
-
-      - name: Setup Node
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-          cache: pnpm
-
       # cargo-fuzz needs nightly; src-tauri/rust-toolchain.toml selects stable,
       # so cargo is called as `cargo +$NIGHTLY`.
       - name: Setup Rust toolchain
@@ -73,12 +62,6 @@ jobs:
 
       - name: Install cargo-fuzz
         run: cargo +"$NIGHTLY" install cargo-fuzz --version 0.13.2 --locked
-
-      # tauri::generate_context!() embeds frontendDist (../build).
-      - name: Build frontend
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm build
 
       # Each run starts from the inputs earlier runs found interesting.
       - name: Restore corpus
