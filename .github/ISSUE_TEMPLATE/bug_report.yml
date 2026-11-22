@@ -1,0 +1,57 @@
+name: Bug report
+description: Something in Clipsa doesn't work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please don't paste anything you copied that is private: passwords, tokens or personal data. Describe it instead ("a 40-character token").
+        Security problems go to [private vulnerability reporting](https://github.com/mordamax/clipsa/security/advisories/new), not here.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Copy some text in TextEdit
+        2. Press ⌘⇧V
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Clipsa version
+      description: Settings → About
+      placeholder: "0.1.5"
+    validations:
+      required: true
+  - type: dropdown
+    id: edition
+    attributes:
+      label: Where did you install Clipsa from?
+      options:
+        - clipsa.dev or GitHub Releases
+        - Homebrew
+        - Mac App Store or TestFlight
+        - Built from source
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and version
+      placeholder: macOS 15.1 on Apple Silicon, Windows 11, Ubuntu 24.04 (Wayland)
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else?
+      description: Error messages, screenshots, or what you already tried.
