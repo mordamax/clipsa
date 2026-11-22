@@ -32,7 +32,8 @@ serde_json = "1"
 thiserror = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-chrono = { version = "0.4", features = ["serde"] }
+# Only UTC timestamps are needed, so no time zone database.
+jiff = { version = "1", default-features = false, features = ["std", "serde"] }
 uuid = { version = "1", features = ["v4"] }
 dirs = "7"
 base64 = "0.23"

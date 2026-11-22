@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info, warn};
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
@@ -270,8 +270,8 @@ pub struct ItemView {
     pub id: String,
     pub content_type: ContentType,
     pub size: u64,
-    pub created_at: DateTime<Utc>,
-    pub last_used_at: DateTime<Utc>,
+    pub created_at: Timestamp,
+    pub last_used_at: Timestamp,
     pub readable: bool,
     pub preview: String,
     pub thumbnail: Option<String>,
@@ -303,8 +303,8 @@ pub struct HistoryQuery {
 pub struct StatsView {
     pub total_items: u64,
     pub total_size_bytes: u64,
-    pub oldest_item: Option<DateTime<Utc>>,
-    pub newest_item: Option<DateTime<Utc>>,
+    pub oldest_item: Option<Timestamp>,
+    pub newest_item: Option<Timestamp>,
 }
 
 type Notifier = Box<dyn Fn() + Send + Sync>;
@@ -388,7 +388,7 @@ impl ClipboardService {
             size: payload.len() as u64,
             sealed_content: self.crypto.seal(&payload)?,
             sealed_preview: self.seal_preview(snapshot)?,
-            at: Utc::now(),
+            at: Timestamp::now(),
         })
     }
 
@@ -551,7 +551,7 @@ impl ClipboardService {
             .last_fingerprint
             .lock()
             .unwrap_or_else(|p| p.into_inner()) = Some(written.fingerprint(&self.crypto));
-        self.storage.mark_used(id, Utc::now())?;
+        self.storage.mark_used(id, Timestamp::now())?;
         (self.notify_changed)();
         Ok(())
     }
