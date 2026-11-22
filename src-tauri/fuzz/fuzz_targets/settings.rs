@@ -55,5 +55,5 @@ fuzz_target!(|fields: Vec<(Key, Json)>| {
             (key, value.into())
         })
         .collect();
-    clipsa_lib::fuzz::settings_merge(Value::Object(patch));
+    clipsa_lib::fuzz::check_settings_merge(Value::Object(patch));
 });

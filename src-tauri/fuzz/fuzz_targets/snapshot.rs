@@ -11,9 +11,10 @@ enum Input {
         html: String,
         text: String,
     },
-    // Sides are capped at 511 px to keep runs fast. That is still larger than
-    // the 256 px thumbnail, so previews get scaled down as for real
-    // screenshots. Pixels repeat to fill the image, so most inputs are valid.
+    // Sides are capped at 511 px so each input runs quickly. That is still
+    // larger than the thumbnail (`THUMBNAIL_PX`), so previews get scaled down
+    // as for real screenshots. Pixels repeat to fill the image, so most inputs
+    // are valid.
     Image {
         width: u16,
         height: u16,
@@ -45,5 +46,5 @@ fuzz_target!(|input: Input| {
         }
         Input::Files(paths) => Snapshot::Files(paths),
     };
-    clipsa_lib::fuzz::snapshot_roundtrip(snapshot);
+    clipsa_lib::fuzz::check_snapshot_roundtrip(snapshot);
 });

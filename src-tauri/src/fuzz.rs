@@ -7,15 +7,15 @@ use crate::settings::AppSettings;
 
 /// Panics when a snapshot that passes capture validation has no preview or
 /// reads back differently after encoding and decoding.
-pub fn snapshot_roundtrip(snapshot: Snapshot) {
+pub fn check_snapshot_roundtrip(snapshot: Snapshot) {
     let Some(snapshot) = snapshot.validated() else {
         return;
     };
     snapshot.preview().expect("no preview for a valid snapshot");
-    let stored = snapshot.encode().expect("valid snapshot didn't encode");
-    let decoded =
-        Snapshot::decode(snapshot.content_type(), stored).expect("encoded snapshot didn't decode");
-    assert_eq!(decoded, snapshot);
+    let payload = snapshot.encode().expect("valid snapshot didn't encode");
+    let roundtrip_snapshot =
+        Snapshot::decode(snapshot.content_type(), payload).expect("encoded snapshot didn't decode");
+    assert_eq!(roundtrip_snapshot, snapshot);
 }
 
 pub fn decode(content_type: ContentType, bytes: Vec<u8>) {
@@ -24,14 +24,14 @@ pub fn decode(content_type: ContentType, bytes: Vec<u8>) {
 
 /// Panics when an accepted settings change gives settings that are rejected
 /// or changed when applied again.
-pub fn settings_merge(patch: serde_json::Value) {
-    let Ok(merged) = AppSettings::default().merged(patch) else {
+pub fn check_settings_merge(patch: serde_json::Value) {
+    let Ok(first_merge) = AppSettings::default().merged(patch) else {
         return;
     };
-    let again = merged
-        .merged(serde_json::to_value(&merged).expect("settings didn't serialize"))
+    let second_merge = first_merge
+        .merged(serde_json::to_value(&first_merge).expect("settings didn't serialize"))
         .expect("merged settings rejected when applied again");
-    assert_eq!(again, merged);
+    assert_eq!(second_merge, first_merge);
 }
 
 pub fn deserialize_key(secret: &str) {

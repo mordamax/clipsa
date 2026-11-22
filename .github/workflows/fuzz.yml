@@ -30,7 +30,7 @@ jobs:
         with:
           persist-credentials: false
 
-      # cargo-fuzz needs nightly; src-tauri/rust-toolchain.toml selects stable,
+      # cargo-fuzz builds only on nightly; src-tauri/rust-toolchain.toml selects stable,
       # so cargo is called as `cargo +$NIGHTLY`.
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable branch
@@ -63,7 +63,7 @@ jobs:
       - name: Install cargo-fuzz
         run: cargo +"$NIGHTLY" install cargo-fuzz --version 0.13.2 --locked
 
-      # Each run starts from the inputs earlier runs found interesting.
+      # Each run starts from the corpus saved by the latest earlier run.
       - name: Restore corpus
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -71,7 +71,6 @@ jobs:
           key: fuzz-corpus-${{ github.run_id }}
           restore-keys: fuzz-corpus-
 
-      # Every target runs even after another one crashed.
       - name: Fuzz
         working-directory: src-tauri
         run: |

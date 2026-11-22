@@ -16,8 +16,8 @@ enum Input {
 
 fuzz_target!(|input: Input| {
     match input {
-        Input::Open(sealed) => {
-            let _ = CRYPTO.open(&sealed);
+        Input::Open(ciphertext) => {
+            let _ = CRYPTO.open(&ciphertext);
         }
         Input::Key(secret) => clipsa_lib::fuzz::deserialize_key(&secret),
     }
