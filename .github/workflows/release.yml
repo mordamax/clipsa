@@ -6,9 +6,10 @@ name: Release
 # release after the final `publish` job flips it out of draft.
 #
 # Release notes come from CHANGELOG.md: the section headed `## [<version>]` for
-# the version in tauri.conf.json becomes the GitHub release body and, through
-# tauri-action, the `notes` field of latest.json that the in-app update window
-# shows. The release fails before building if that section is missing or empty.
+# the app version (src-tauri/Cargo.toml, read by scripts/app-version.sh)
+# becomes the GitHub release body and, through tauri-action, the `notes` field
+# of latest.json that the in-app update window shows. The release fails before
+# building if that section is missing or empty.
 #
 # Security (docs/security.md → "Release pipeline"): signing and publishing
 # secrets live in the `release` environment, which only accepts runs from
@@ -46,17 +47,17 @@ jobs:
         with:
           persist-credentials: false
 
-      # tauri-action uploads to the release named after the version in
-      # tauri.conf.json, so a tag for a different version would add files to
-      # (or overwrite files in) that version's already published release.
+      # tauri-action uploads to the release named after the app version, so a
+      # tag for a different version would add files to (or overwrite files in)
+      # that version's already published release.
       - name: Check that the tag matches the app version
         env:
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
         run: |
-          version="$(jq -r .version src-tauri/tauri.conf.json)"
+          version="$(scripts/app-version.sh)"
           if [ "$REF_TYPE" != "tag" ] || [ "$REF_NAME" != "v$version" ]; then
-            echo "::error::Releases run from the tag v$version (the version in tauri.conf.json), not from $REF_TYPE '$REF_NAME'."
+            echo "::error::Releases run from the tag v$version (the version in src-tauri/Cargo.toml), not from $REF_TYPE '$REF_NAME'."
             exit 1
           fi
 
@@ -64,7 +65,7 @@ jobs:
       # generated pages; a release must not ship without them.
       - name: Check that the site lists this release
         run: |
-          version="$(jq -r .version src-tauri/tauri.conf.json)"
+          version="$(scripts/app-version.sh)"
           node scripts/build-site.mjs --check
           grep -q "id=\"v$version\"" site/changelog.html || {
             echo "::error file=CHANGELOG.md::site/changelog.html has no entry for $version. Date its CHANGELOG section and run pnpm site."
@@ -74,7 +75,7 @@ jobs:
       - name: Extract this version's CHANGELOG section
         id: changelog
         run: |
-          version="$(jq -r .version src-tauri/tauri.conf.json)"
+          version="$(scripts/app-version.sh)"
           # Everything between "## [<version>]" and the next "## [" heading,
           # without leading blank lines ($(...) drops trailing ones).
           body="$(awk -v heading="## [$version]" '
@@ -104,7 +105,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BODY: ${{ steps.changelog.outputs.body }}
         run: |
-          tag="v$(jq -r .version src-tauri/tauri.conf.json)"
+          tag="v$(scripts/app-version.sh)"
           # Lists drafts too (releases/tags/<tag> doesn't).
           existing="$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
             | jq -s --arg tag "$tag" '[.[][] | select(.tag_name == $tag) | {id, draft}]')"
@@ -280,7 +281,7 @@ jobs:
           fi
           retry xcrun stapler staple "$dmg"
           spctl -a -vvv -t install "$dmg"
-          gh release upload "v$(jq -r .version src-tauri/tauri.conf.json)" "$dmg" --clobber -R "$GITHUB_REPOSITORY"
+          gh release upload "v$(scripts/app-version.sh)" "$dmg" --clobber -R "$GITHUB_REPOSITORY"
 
       - name: Remove the notarization key
         if: always() && runner.os == 'macOS'
@@ -296,7 +297,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      actions: write # start the Site workflow
+      actions: write # start the Site and Mac App Store workflows
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -311,7 +312,7 @@ jobs:
       # update) fails here instead of breaking a download.
       - name: Checksum the installers the website links to
         run: |
-          version="$(jq -r .version src-tauri/tauri.conf.json)"
+          version="$(scripts/app-version.sh)"
           list="$(node scripts/build-site.mjs --assets)"
           mapfile -t files <<<"$list"
           patterns=()
@@ -326,7 +327,7 @@ jobs:
 
       - name: Render the Homebrew cask from SHA256SUMS
         run: |
-          version="$(jq -r .version src-tauri/tauri.conf.json)"
+          version="$(scripts/app-version.sh)"
           sum() { awk -v file="$1" '$2 == file { print $1 }' SHA256SUMS; }
           arm="$(sum "Clipsa_${version}_aarch64.dmg")"
           intel="$(sum "Clipsa_${version}_x64.dmg")"
@@ -343,7 +344,7 @@ jobs:
         env:
           NOTES: ${{ needs.notes.outputs.body }}
         run: |
-          version="$(jq -r .version src-tauri/tauri.conf.json)"
+          version="$(scripts/app-version.sh)"
           tag="v$version"
           gh release download "$tag" -D sigs -p '*.sig' -R "$GITHUB_REPOSITORY"
           printf '%s\n' "$NOTES" > notes.md
@@ -358,15 +359,23 @@ jobs:
           gh release upload "$tag" latest.json --clobber -R "$GITHUB_REPOSITORY"
 
       - name: Publish draft release
-        run: gh release edit "v$(jq -r .version src-tauri/tauri.conf.json)" --draft=false --latest -R "$GITHUB_REPOSITORY"
+        run: gh release edit "v$(scripts/app-version.sh)" --draft=false --latest -R "$GITHUB_REPOSITORY"
 
       # The site shows the latest version and links to its downloads, so it is
       # deployed only now (the Site workflow skips versions that aren't published).
       - name: Deploy the website
         run: gh workflow run site.yml --ref master -R "$GITHUB_REPOSITORY"
 
+      # The Mac App Store build of this exact tag. It waits for the maintainer's
+      # approval (environment `appstore`) before it can use any key, and only
+      # uploads to TestFlight: submitting and releasing happen in App Store
+      # Connect, which the workflow's key isn't allowed to do.
+      - name: Start the Mac App Store build
+        run: gh workflow run appstore.yml --ref "v$(scripts/app-version.sh)" -f upload=true -R "$GITHUB_REPOSITORY"
+
   # Pushes the cask with a short-lived token from the Clipsa Homebrew GitHub
-  # App, which is installed only on mordamax/homebrew-tap (contents: write).
+  # App, limited to mordamax/homebrew-tap and contents: write (the App is also
+  # installed on this repository for release-pr.yml).
   homebrew:
     name: Update Homebrew cask
     needs: publish
@@ -383,7 +392,7 @@ jobs:
 
       - name: Download the cask attached to the release
         run: |
-          version="$(jq -r .version src-tauri/tauri.conf.json)"
+          version="$(scripts/app-version.sh)"
           gh release download "v$version" -p clipsa.rb -R "$GITHUB_REPOSITORY"
           echo "VERSION=$version" >> "$GITHUB_ENV"
 

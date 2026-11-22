@@ -71,13 +71,15 @@ clipsa/
 │   ├── src/                      # Rust backend (see Backend modules above)
 │   ├── capabilities/             # Tauri permission capabilities
 │   ├── appstore/                 # Mac App Store Info.plist and entitlements template
-│   ├── tauri.conf.json
+│   ├── tauri.conf.json           # App config (the version comes from Cargo.toml)
 │   ├── tauri.release.conf.json   # Release overlay: enables updater artifacts
 │   └── tauri.appstore.conf.json  # Mac App Store overlay
-├── scripts/                      # Local macOS signing identity and install script
+├── scripts/                      # Site generator, release helpers, local macOS signing and install
 ├── packaging/homebrew/           # Homebrew cask template
 ├── site/                         # clipsa.dev static website
 ├── docs/
+├── .changes/                     # Release notes waiting for the next release (covector)
 ├── CHANGELOG.md                  # Release notes (published with each release)
-└── .github/workflows/            # ci.yml, release.yml, appstore.yml
+├── AGENTS.md, CLAUDE.md          # Instructions for AI coding agents (CLAUDE.md imports AGENTS.md)
+└── .github/workflows/            # ci.yml, release-pr.yml, release.yml, appstore.yml, site*.yml
 ```

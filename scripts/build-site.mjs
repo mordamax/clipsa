@@ -3,7 +3,7 @@
 // the release list in site/changelog.html, the latest version and date
 // wherever a page has <!-- clipsa:version --> / <!-- clipsa:date --> markers,
 // and one page per installer in site/download/ (see DOWNLOADS).
-// Only dated sections count, so an "Unreleased" section never shows up.
+// Only dated sections count, so an undated one never shows up.
 //
 //   node scripts/build-site.mjs           rewrite the files
 //   node scripts/build-site.mjs --check   exit 1 if any file is out of date

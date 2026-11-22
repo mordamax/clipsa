@@ -1,15 +1,5 @@
 # Changelog
 
-All notable changes to Clipsa are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and Clipsa uses
-[Semantic Versioning](https://semver.org/).
-
-Each release has a section headed `## [X.Y.Z] - YYYY-MM-DD` (`Unreleased` in
-place of the date until it ships). That section is published as the GitHub
-release notes, in Clipsa's update window and on
-[clipsa.dev/changelog](https://clipsa.dev/changelog) (run `pnpm site`), so write
-it for users; see [Release notes](./docs/deployment.md#release-notes) for the format.
-
 ## [0.1.5] - 2026-11-21
 
 ### Added

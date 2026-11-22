@@ -1,6 +1,10 @@
 ## Description
 Brief description of changes and their purpose.
 
+## Release note
+- [ ] Users will notice this change, and it adds a note in `.changes/` written for them (see `.changes/README.md`)
+- [ ] Users won't notice it (docs, CI, tests, refactoring): no note
+
 ## Type of Change
 - [ ] Bug fix (non-breaking change which fixes an issue)
 - [ ] New feature (non-breaking change which adds functionality)

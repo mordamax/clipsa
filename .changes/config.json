@@ -1,0 +1,19 @@
+{
+  "gitSiteUrl": "https://github.com/mordamax/clipsa/",
+  "changeTags": {
+    "added": "Added",
+    "changed": "Changed",
+    "fixed": "Fixed",
+    "removed": "Removed",
+    "security": "Security"
+  },
+  "packages": {
+    "clipsa": {
+      "path": ".",
+      "packageFileName": "src-tauri/Cargo.toml",
+      "manager": "rust",
+      "version": true,
+      "postversion": "node scripts/finish-release.mjs"
+    }
+  }
+}
