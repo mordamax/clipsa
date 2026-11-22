@@ -12,6 +12,7 @@ Everything you copy, searchable and one keystroke away. Encrypted on your device
 [![Platforms](https://img.shields.io/badge/platforms-macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-5a54ee)](#install)
 [![License: MIT](https://img.shields.io/github/license/mordamax/clipsa?color=5a54ee)](./LICENSE)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/mordamax/clipsa/badge)](https://scorecard.dev/viewer/?uri=github.com/mordamax/clipsa)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/17014/badge)](https://www.bestpractices.dev/projects/17014)
 
 [**Download**](https://clipsa.dev/#download) · [Website](https://clipsa.dev) · [Compare with Maccy, Paste, Raycast…](https://clipsa.dev/compare) · [Changelog](https://clipsa.dev/changelog)
 
