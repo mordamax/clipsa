@@ -82,19 +82,30 @@ jobs:
 
       # Each run starts from the inputs earlier runs found interesting.
       - name: Restore corpus
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: src-tauri/fuzz/corpus
           key: fuzz-corpus-${{ github.run_id }}
           restore-keys: fuzz-corpus-
 
+      # Every target runs even after another one crashed.
       - name: Fuzz
         working-directory: src-tauri
         run: |
           cargo +"$NIGHTLY" fuzz build
-          for target in $(cargo +"$NIGHTLY" fuzz list); do
-            cargo +"$NIGHTLY" fuzz run "$target" -- -max_total_time="$SECONDS_PER_TARGET"
+          targets=$(cargo +"$NIGHTLY" fuzz list)
+          status=0
+          for target in $targets; do
+            cargo +"$NIGHTLY" fuzz run "$target" -- -max_total_time="$SECONDS_PER_TARGET" || status=1
           done
+          exit "$status"
+
+      - name: Save corpus
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: src-tauri/fuzz/corpus
+          key: fuzz-corpus-${{ github.run_id }}
 
       - name: Attach crashing inputs
         if: failure()
