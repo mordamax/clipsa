@@ -34,10 +34,6 @@ pub fn settings_merge(patch: serde_json::Value) {
     assert_eq!(again, merged);
 }
 
-pub fn open(sealed: &str) {
-    let _ = CryptoManager::from_key(&[7; 32]).open(sealed);
-}
-
 pub fn deserialize_key(secret: &str) {
     let _ = CryptoManager::deserialize_key(secret);
 }
