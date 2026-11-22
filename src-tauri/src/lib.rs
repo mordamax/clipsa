@@ -3,7 +3,7 @@
 pub mod clipboard;
 pub mod crypto;
 pub mod error;
-#[cfg(fuzzing)]
+#[cfg(feature = "fuzz")]
 pub mod fuzz;
 pub mod lock;
 pub mod platform;

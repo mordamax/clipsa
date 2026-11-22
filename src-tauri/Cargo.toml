@@ -92,6 +92,8 @@ self-update = ["dep:tauri-plugin-updater"]
 # keystroke paste, SMAppService login item, key in the data protection
 # keychain). Enabled by tauri.appstore.conf.json.
 app-store = ["dep:objc2-service-management", "dep:security-framework", "dep:security-framework-sys", "dep:core-foundation"]
+# Entry points for the fuzz targets in fuzz/ (src/fuzz.rs). Enabled by fuzz/Cargo.toml.
+fuzz = []
 
 [dev-dependencies]
 tempfile = "3"
@@ -99,6 +101,3 @@ tempfile = "3"
 # cargo-fuzz targets (`cargo +nightly fuzz run <target>`); a member so they share Cargo.lock.
 [workspace]
 members = ["fuzz"]
-
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ["cfg(fuzzing)"] }

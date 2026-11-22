@@ -10,7 +10,7 @@ use serde_json::{Map, Value};
 static KEYS: LazyLock<Vec<String>> =
     LazyLock::new(|| match serde_json::to_value(AppSettings::default()) {
         Ok(Value::Object(fields)) => fields.keys().cloned().collect(),
-        _ => panic!("AppSettings serializes to an object"),
+        _ => panic!("AppSettings didn't serialize to an object"),
     });
 
 #[derive(Arbitrary, Debug)]
