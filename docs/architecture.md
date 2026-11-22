@@ -80,5 +80,6 @@ clipsa/
 ├── docs/
 ├── .changes/                     # Release notes waiting for the next release (covector)
 ├── CHANGELOG.md                  # Release notes (published with each release)
+├── AGENTS.md, CLAUDE.md          # Instructions for AI coding agents (CLAUDE.md imports AGENTS.md)
 └── .github/workflows/            # ci.yml, release-pr.yml, release.yml, appstore.yml, site*.yml
 ```
