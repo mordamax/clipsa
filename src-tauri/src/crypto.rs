@@ -95,6 +95,8 @@ pub struct ProtectedKeychainStore;
 impl ProtectedKeychainStore {
     /// `errSecItemNotFound`.
     const NOT_FOUND: i32 = -25300;
+    /// `errSecInteractionNotAllowed`: the item can't be read while the Mac is locked.
+    const LOCKED: i32 = -25308;
 
     fn options() -> security_framework::passwords::PasswordOptions {
         let mut options = security_framework::passwords::PasswordOptions::new_generic_password(
@@ -104,16 +106,91 @@ impl ProtectedKeychainStore {
         options.use_protected_keychain();
         options
     }
+
+    /// Readable whenever the Mac has been unlocked once since it started, so
+    /// Clipsa can start while the screen is locked (e.g. after an automatic
+    /// update). Only this app's keychain access group can read it either way.
+    fn after_first_unlock() -> ClipsaResult<security_framework::access_control::SecAccessControl> {
+        security_framework::access_control::SecAccessControl::create_with_protection(
+            Some(security_framework::access_control::ProtectionMode::AccessibleAfterFirstUnlock),
+            0,
+        )
+        .map_err(|e| {
+            ClipsaError::KeyManagement(format!("failed to create the keychain access setting: {e}"))
+        })
+    }
+
+    /// Gives a key stored before `after_first_unlock` was the default (0.1.5
+    /// stored keys readable only while the Mac is unlocked) the same
+    /// accessibility.
+    fn make_readable_after_first_unlock() -> ClipsaResult<()> {
+        use core_foundation::base::TCFType;
+        use core_foundation::boolean::CFBoolean;
+        use core_foundation::dictionary::CFDictionary;
+        use core_foundation::string::{CFString, CFStringRef};
+        use security_framework_sys::access_control::kSecAttrAccessibleAfterFirstUnlock;
+        use security_framework_sys::item::{
+            kSecAttrAccount, kSecAttrService, kSecClass, kSecClassGenericPassword,
+            kSecUseDataProtectionKeychain,
+        };
+        #[link(name = "Security", kind = "framework")]
+        extern "C" {
+            static kSecAttrAccessible: CFStringRef;
+        }
+
+        let constant = |value: CFStringRef| unsafe { CFString::wrap_under_get_rule(value) };
+        let query = CFDictionary::from_CFType_pairs(&[
+            (
+                constant(unsafe { kSecClass }),
+                constant(unsafe { kSecClassGenericPassword }).as_CFType(),
+            ),
+            (
+                constant(unsafe { kSecAttrService }),
+                CFString::new(KEYCHAIN_SERVICE).as_CFType(),
+            ),
+            (
+                constant(unsafe { kSecAttrAccount }),
+                CFString::new(KEYCHAIN_ACCOUNT).as_CFType(),
+            ),
+            (
+                constant(unsafe { kSecUseDataProtectionKeychain }),
+                CFBoolean::true_value().as_CFType(),
+            ),
+        ]);
+        let update = CFDictionary::from_CFType_pairs(&[(
+            constant(unsafe { kSecAttrAccessible }),
+            constant(unsafe { kSecAttrAccessibleAfterFirstUnlock }).as_CFType(),
+        )]);
+        let status = unsafe {
+            security_framework_sys::keychain_item::SecItemUpdate(
+                query.as_concrete_TypeRef(),
+                update.as_concrete_TypeRef(),
+            )
+        };
+        if status == 0 {
+            Ok(())
+        } else {
+            Err(ClipsaError::KeyManagement(format!(
+                "failed to update the encryption key's keychain accessibility (OSStatus {status})"
+            )))
+        }
+    }
 }
 
 #[cfg(feature = "app-store")]
 impl KeyStore for ProtectedKeychainStore {
     fn load(&self) -> ClipsaResult<Option<String>> {
         match security_framework::passwords::generic_password(Self::options()) {
-            Ok(secret) => String::from_utf8(secret).map(Some).map_err(|_| {
-                ClipsaError::KeyManagement("The stored encryption key is not valid text".into())
-            }),
+            Ok(secret) => {
+                if let Err(e) = Self::make_readable_after_first_unlock() {
+                    tracing::warn!("{e}");
+                }
+                String::from_utf8(secret).map(Some).map_err(|_| {
+                    ClipsaError::KeyManagement("The stored encryption key is not valid text".into())
+                })
+            }
             Err(e) if e.code() == Self::NOT_FOUND => Ok(None),
+            Err(e) if e.code() == Self::LOCKED => Err(ClipsaError::KeychainLocked),
             Err(e) => Err(ClipsaError::KeyManagement(format!(
                 "Could not read the encryption key from the keychain: {e}"
             ))),
@@ -121,15 +198,14 @@ impl KeyStore for ProtectedKeychainStore {
     }
 
     fn store(&self, secret: &str) -> ClipsaResult<()> {
-        security_framework::passwords::set_generic_password_options(
-            secret.as_bytes(),
-            Self::options(),
-        )
-        .map_err(|e| {
-            ClipsaError::KeyManagement(format!(
-                "Could not save the encryption key to the keychain: {e}"
-            ))
-        })
+        let mut options = Self::options();
+        options.set_access_control(Self::after_first_unlock()?);
+        security_framework::passwords::set_generic_password_options(secret.as_bytes(), options)
+            .map_err(|e| {
+                ClipsaError::KeyManagement(format!(
+                    "Could not save the encryption key to the keychain: {e}"
+                ))
+            })
     }
 }
 

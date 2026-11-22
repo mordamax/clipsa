@@ -64,8 +64,11 @@ objc2-local-authentication = { version = "0.3", features = ["LAContext", "LAErro
 block2 = "0.6"
 # Launch at login via SMAppService (App Store edition only).
 objc2-service-management = { version = "0.3", optional = true, default-features = false, features = ["std", "objc2", "objc2-foundation", "SMAppService"] }
-# Data protection keychain (App Store edition only; needs macOS 10.15).
+# Data protection keychain (App Store edition only; needs macOS 10.15), plus the
+# raw SecItemUpdate call for changing an existing key's accessibility.
 security-framework = { version = "3", optional = true, features = ["OSX_10_15"] }
+security-framework-sys = { version = "2", optional = true }
+core-foundation = { version = "0.10", optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 arboard = { version = "3.7", features = ["wayland-data-control"] }
@@ -89,7 +92,7 @@ self-update = ["dep:tauri-plugin-updater"]
 # Mac App Store builds (macOS only): sandbox-compatible behaviour (no
 # keystroke paste, SMAppService login item, key in the data protection
 # keychain). Enabled by tauri.appstore.conf.json.
-app-store = ["dep:objc2-service-management", "dep:security-framework"]
+app-store = ["dep:objc2-service-management", "dep:security-framework", "dep:security-framework-sys", "dep:core-foundation"]
 
 [dev-dependencies]
 tempfile = "3"

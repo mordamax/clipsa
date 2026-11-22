@@ -34,9 +34,15 @@ pub enum ClipsaError {
     /// A refused request whose message is shown to the user verbatim.
     #[error("{0}")]
     Rejected(String),
-    /// History commands before the first-run screen created the key.
-    #[error("Clipsa isn't set up yet. Finish the welcome screen first.")]
+    /// History commands before the encryption key is loaded: before the
+    /// first-run screen created it, or while the keychain is locked.
+    #[error("Your history isn't open yet: Clipsa is waiting for its encryption key.")]
     NotSetUp,
+    /// The keychain can't be read until the Mac is unlocked. Only the App Store
+    /// edition's keychain store reports it.
+    #[cfg_attr(not(feature = "app-store"), allow(dead_code))]
+    #[error("The keychain is locked until the Mac is unlocked")]
+    KeychainLocked,
     #[error("Application startup failed: {0}")]
     ApplicationStartup(String),
 }
