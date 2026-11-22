@@ -806,11 +806,29 @@ mod tests {
     #[test]
     fn recapturing_same_content_dedupes() {
         let f = fixture();
-        f.service.capture(text("a")).unwrap();
+        assert_eq!(f.service.capture(text("a")).unwrap(), SaveOutcome::Inserted);
         f.service.capture(text("b")).unwrap();
-        f.service.capture(text("a")).unwrap();
-        let previews: Vec<String> = all(&f.service).into_iter().map(|i| i.preview).collect();
-        assert_eq!(previews, vec!["a", "b"]);
+        let a_id = all(&f.service)
+            .into_iter()
+            .find(|item| item.preview == "a")
+            .unwrap()
+            .id;
+        assert_eq!(
+            f.service.capture(text("a")).unwrap(),
+            SaveOutcome::Bumped(a_id)
+        );
+        let items = all(&f.service);
+        assert_eq!(items.len(), 2);
+        let used = |preview: &str| {
+            items
+                .iter()
+                .find(|item| item.preview == preview)
+                .unwrap()
+                .last_used_at
+        };
+        // Not the list order: the recapture can land in the same millisecond
+        // as "b", and then the tie-break puts "b" first.
+        assert!(used("a") >= used("b"));
     }
 
     #[test]
