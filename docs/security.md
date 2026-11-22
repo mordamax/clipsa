@@ -87,3 +87,5 @@ The repository is public and the release workflow holds keys that could ship cod
 ## Reporting vulnerabilities
 
 Use [GitHub private security advisories](https://github.com/mordamax/clipsa/security/advisories/new). Please do not open public issues for vulnerabilities.
+
+Reports get a first response within 14 days. Confirmed vulnerabilities are fixed in a release, and its release notes list them under **Security**.
