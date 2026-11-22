@@ -39,7 +39,7 @@ base64 = "0.23"
 
 # Storage
 # `fallible_uint`: u64 FromSql/ToSql (default before rusqlite 0.38).
-rusqlite = { version = "0.41", features = ["bundled", "fallible_uint"] }
+rusqlite = { version = "0.42", features = ["bundled", "fallible_uint"] }
 
 # Crypto
 aes-gcm = { version = "0.11", features = ["zeroize"] }
