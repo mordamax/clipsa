@@ -83,7 +83,7 @@ struct HtmlPayload {
 }
 
 #[derive(Serialize, Deserialize)]
-struct Preview {
+pub(crate) struct Preview {
     text: String,
     thumbnail: Option<String>,
 }
@@ -151,7 +151,7 @@ impl Snapshot {
     }
 
     /// Serialized payload that gets encrypted and stored.
-    fn encode(&self) -> ClipsaResult<Vec<u8>> {
+    pub(crate) fn encode(&self) -> ClipsaResult<Vec<u8>> {
         Ok(match self {
             Snapshot::Text(text) => text.as_bytes().to_vec(),
             Snapshot::Html { html, text } => serde_json::to_vec(&HtmlPayload {
@@ -168,7 +168,7 @@ impl Snapshot {
     }
 
     /// `bytes` is decrypted plaintext; it is consumed and wiped.
-    fn decode(content_type: ContentType, bytes: Vec<u8>) -> ClipsaResult<Self> {
+    pub(crate) fn decode(content_type: ContentType, bytes: Vec<u8>) -> ClipsaResult<Self> {
         let mut bytes = Zeroizing::new(bytes);
         Ok(match content_type {
             // Moves the buffer into the String (no copy); Snapshot wipes it on drop.
@@ -220,7 +220,7 @@ impl Snapshot {
         }
     }
 
-    fn preview(&self) -> ClipsaResult<Preview> {
+    pub(crate) fn preview(&self) -> ClipsaResult<Preview> {
         Ok(match self {
             Snapshot::Image {
                 width,

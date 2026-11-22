@@ -95,3 +95,10 @@ app-store = ["dep:objc2-service-management", "dep:security-framework", "dep:secu
 
 [dev-dependencies]
 tempfile = "3"
+
+# cargo-fuzz targets (`cargo +nightly fuzz run <target>`); a member so they share Cargo.lock.
+[workspace]
+members = ["fuzz"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(fuzzing)"] }

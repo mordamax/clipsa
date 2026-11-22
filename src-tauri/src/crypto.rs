@@ -299,7 +299,7 @@ impl CryptoManager {
         .to_string()
     }
 
-    fn deserialize_key(secret: &str) -> ClipsaResult<Zeroizing<[u8; KEY_LEN]>> {
+    pub(crate) fn deserialize_key(secret: &str) -> ClipsaResult<Zeroizing<[u8; KEY_LEN]>> {
         let value: serde_json::Value = serde_json::from_str(secret)
             .map_err(|e| ClipsaError::KeyManagement(format!("Invalid key format: {e}")))?;
         let encoded = value["key"]
