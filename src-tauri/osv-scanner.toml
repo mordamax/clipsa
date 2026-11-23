@@ -1,0 +1,5 @@
+# Read by osv-scanner, which OpenSSF Scorecard uses for its Vulnerabilities check.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0543"
+reason = "chrono is in Cargo.lock only because serde_with (used by tauri-utils) lists it in a weak feature (https://github.com/rust-lang/cargo/issues/10801); it isn't compiled in any build. `cargo tree --target all -i chrono` prints nothing."

@@ -47,7 +47,7 @@ sha2 = "0.11"
 hmac = "0.13"
 hkdf = "0.13"
 zeroize = { version = "1", features = ["derive"] }
-keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
 
 # Clipboard access and paste simulation
 arboard = "3.7"
@@ -71,6 +71,9 @@ core-foundation = { version = "0.10", optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 arboard = { version = "3.7", features = ["wayland-data-control"] }
+# Encrypted transfer to the Secret Service, as keyring's `crypto-rust` feature
+# enables it; that feature would also put zbus 4 into Cargo.lock.
+dbus-secret-service = { version = "4.1", features = ["crypto-rust"] }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = ["Security_Credentials_UI", "Win32_Foundation", "Win32_System_WinRT", "Win32_UI_WindowsAndMessaging"] }
