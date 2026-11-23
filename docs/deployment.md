@@ -81,6 +81,8 @@ Triggered by the tag `vX.Y.Z`. It can also be re-run by hand (`workflow_dispatch
    Each job runs `tauri-apps/tauri-action` (v1) with `--config src-tauri/tauri.release.conf.json` and uploads installers, updater bundles and `.sig` files into that draft (`releaseId`). The jobs don't touch `latest.json` (`uploadUpdaterJson: false`): when parallel jobs each looked for the draft or merged their entry into a shared `latest.json`, they raced (0.1.3 ended up with two drafts).
 
    On macOS, Tauri notarizes and staples the `.app` but only signs the DMG around it. The next step submits the DMG to Apple's notary service, staples the ticket and replaces the uploaded DMG, so `spctl -a -vvv -t install Clipsa_<version>_<arch>.dmg` reports `Notarized Developer ID`. The first notarizations for a new team can take an hour.
+
+   On Windows, once SignPath is set up ([Windows signing](#windows-signing)), the job uploads the setup `.exe` and the `.msi` as a workflow artifact, submits it to SignPath and waits up to two hours for the signing request to be approved there. It checks that both returned files have a valid Authenticode signature, signs them again for the updater (`tauri signer sign`, since signing changed the files) and replaces the installers and their `.sig` files in the draft.
 3. **publish**: runs only if every build succeeded. It attaches `SHA256SUMS` for the installers the website links to (`node scripts/build-site.mjs --assets`) and fails if any of them is missing, so a renamed bundle can't break a download page. It creates a signed build provenance attestation for those installers (`gh attestation verify <file> -R mordamax/clipsa`). It renders the Homebrew cask from `packaging/homebrew/clipsa.rb.in` with the DMG checksums from `SHA256SUMS` and attaches `clipsa.rb`. Then it generates `latest.json` once with `scripts/updater-manifest.sh` from the `.sig` files in the release: every platform is required, the `notes` field is the changelog section, and URLs are the regular `github.com/…/releases/download/<tag>/<file>` ones (not `api.github.com` asset URLs, which count against GitHub's anonymous limit of 60 requests per hour per IP). Then it makes the draft public (`gh release edit --draft=false --latest`). Releases are **immutable** once published (repository setting), which is why everything is attached before this point. From then on `https://github.com/mordamax/clipsa/releases/latest/download/latest.json` serves the new version to the in-app updater. Finally it starts the website deploy and the [Mac App Store workflow](#mac-app-store) for the tag, which waits for the maintainer's approval.
 4. **homebrew**: gets a one-hour token from the clipsa-release-bot GitHub App, limited to `mordamax/homebrew-tap` with `contents: write`, and pushes `clipsa.rb` there (`brew install --cask mordamax/tap/clipsa`).
 
@@ -115,6 +117,8 @@ Release secrets live in the GitHub environment **`release`** (Settings → Envir
 | `APPLE_API_PRIVATE_KEY` | secret | Required. Contents of that key's `AuthKey_<KEYID>.p8` |
 | `HOMEBREW_APP_CLIENT_ID` | variable | Required for the **homebrew** job. Client ID of the clipsa-release-bot GitHub App |
 | `HOMEBREW_APP_PRIVATE_KEY` | secret | Required for the **homebrew** job. A private key (`.pem`) of that App |
+| `SIGNPATH_API_TOKEN` | secret | Windows signing. API token of the SignPath CI user (submitter role) |
+| `SIGNPATH_ORGANIZATION_ID`, `SIGNPATH_PROJECT_SLUG`, `SIGNPATH_SIGNING_POLICY_SLUG` | variable | Windows signing. Without `SIGNPATH_ORGANIZATION_ID` the Windows installers are published unsigned |
 
 `GITHUB_TOKEN` is provided automatically; the default is read-only and only the jobs that upload to the release get `contents: write`.
 
@@ -122,7 +126,42 @@ The **Release PR** workflow uses its own environment, **`release-pr`**, which ac
 
 macOS releases must be signed with a Developer ID and notarized; the workflow fails before building if any required Apple secret is missing. A stable signing identity is what lets users click "Always Allow" for keychain access and grant Accessibility once: macOS ties both to the code signature, so unsigned builds would re-prompt after every update. (The Tauri bundler treats an Apple variable set to an empty string as configured, so the workflow exports them only after this check.)
 
-Windows installers are not code-signed; SmartScreen may warn until the app builds reputation.
+### Windows signing
+
+Once set up, the Windows installers are signed through [SignPath](https://signpath.io) with a certificate issued to SignPath Foundation, which signs open source projects for free ([conditions](https://signpath.org/terms.html)). Until then they are published unsigned. SmartScreen may still warn about new versions until the publisher builds reputation. SignPath only signs artifacts that a GitHub-hosted run of this repository's workflow uploaded, and every request needs a manual approval in SignPath.
+
+The release workflow refers to `signpath/github-action-submit-signing-request`, so that action must be allowed under Settings → Actions → General (`signpath/github-action-submit-signing-request@*`) whether or not SignPath is set up: GitHub doesn't start a workflow that uses an action outside the allowed list.
+
+One-time setup, after SignPath Foundation accepts the project ([apply](https://signpath.org/apply.html)):
+
+1. In SignPath, add the trusted build system **GitHub.com** to the organization and link it to the project.
+2. Set the project's artifact configuration to:
+
+   ```xml
+   <?xml version="1.0" encoding="utf-8"?>
+   <artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+     <parameters>
+       <parameter name="version" required="true" />
+     </parameters>
+     <zip-file>
+       <pe-file path="Clipsa_${version}_x64-setup.exe" product-name="Clipsa" product-version="${version}">
+         <authenticode-sign />
+       </pe-file>
+       <msi-file path="Clipsa_${version}_x64_en-US.msi" subject="Clipsa">
+         <pe-file path="**/clipsa.exe" product-name="Clipsa" product-version="${version}">
+           <authenticode-sign />
+         </pe-file>
+         <authenticode-sign />
+       </msi-file>
+     </zip-file>
+   </artifact-configuration>
+   ```
+
+   The `.msi` is signed together with the `clipsa.exe` inside it. The NSIS setup `.exe` is signed as a whole, so the `clipsa.exe` it installs stays unsigned.
+3. Create a CI user with the submitter role for the signing policy and an API token for it.
+4. In the GitHub environment `release`, add the secret and variables listed above (the policy slug is usually `release-signing`).
+
+To try the setup first, set `SIGNPATH_SIGNING_POLICY_SLUG` to `test-signing`: the request goes through, but the check of the signatures fails because the test certificate isn't trusted, so the release isn't published.
 
 ## Website (Cloudflare Pages)
 
