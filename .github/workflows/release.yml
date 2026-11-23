@@ -131,6 +131,7 @@ jobs:
     environment: release
     permissions:
       contents: write # upload assets to the draft release
+      actions: read # SignPath reads the job and downloads the unsigned Windows installers
     strategy:
       fail-fast: false
       matrix:
@@ -243,6 +244,78 @@ jobs:
           # it from parallel jobs can drop entries.
           uploadUpdaterJson: false
           args: --config src-tauri/tauri.release.conf.json ${{ matrix.args }}
+
+      # Once the SIGNPATH_* variables are set, the Windows installers are signed
+      # by SignPath (certificate of SignPath Foundation, see docs/deployment.md),
+      # which waits for a manual approval of each request. Signing changes the
+      # files, so their updater signatures are made again afterwards.
+      - name: Collect the Windows installers for signing
+        id: windows
+        if: runner.os == 'Windows' && vars.SIGNPATH_ORGANIZATION_ID != ''
+        shell: bash
+        env:
+          ARTIFACT_PATHS: ${{ steps.tauri.outputs.artifactPaths }}
+        run: |
+          version="$(scripts/app-version.sh)"
+          dir="$RUNNER_TEMP/windows-unsigned"
+          mkdir -p "$dir"
+          for name in "Clipsa_${version}_x64-setup.exe" "Clipsa_${version}_x64_en-US.msi"; do
+            path="$(jq -r --arg name "$name" '[.[] | select(endswith($name))] | first // empty' <<<"$ARTIFACT_PATHS")"
+            [ -n "$path" ] || { echo "::error::$name is not among the tauri-action artifacts: $ARTIFACT_PATHS"; exit 1; }
+            cp "$(cygpath -u "$path")" "$dir/"
+          done
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the unsigned Windows installers
+        id: unsigned
+        if: steps.windows.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-unsigned
+          path: ${{ steps.windows.outputs.dir }}
+          if-no-files-found: error
+
+      - name: Sign the Windows installers
+        if: steps.windows.outcome == 'success'
+        uses: signpath/github-action-submit-signing-request@a2c5b60d9c75f073142b653c354b632eedce097b # v3.2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion-timeout-in-seconds: 7200
+          output-artifact-directory: ${{ runner.temp }}/windows-signed
+          parameters: |
+            version: "${{ steps.windows.outputs.version }}"
+
+      - name: Check the Windows signatures
+        if: steps.windows.outcome == 'success'
+        shell: pwsh
+        run: |
+          foreach ($file in Get-ChildItem "$env:RUNNER_TEMP/windows-signed" -File) {
+            $signature = Get-AuthenticodeSignature $file.FullName
+            if ($signature.Status -ne 'Valid') { throw "$($file.Name): signature status $($signature.Status)" }
+            Write-Host "$($file.Name): $($signature.SignerCertificate.Subject)"
+          }
+
+      - name: Replace the Windows installers and their updater signatures
+        if: steps.windows.outcome == 'success'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          VERSION: ${{ steps.windows.outputs.version }}
+        run: |
+          cd "$RUNNER_TEMP/windows-signed"
+          files=("Clipsa_${VERSION}_x64-setup.exe" "Clipsa_${VERSION}_x64_en-US.msi")
+          for file in "${files[@]}"; do
+            [ -f "$file" ] || { echo "::error::SignPath didn't return $file"; exit 1; }
+            pnpm --dir "$GITHUB_WORKSPACE" tauri signer sign "$(cygpath -w "$PWD/$file")"
+          done
+          gh release upload "v$VERSION" "${files[@]}" "${files[@]/%/.sig}" --clobber -R "$GITHUB_REPOSITORY"
 
       # Tauri notarizes and staples the .app, then wraps it in a DMG that is only
       # signed. Notarize and staple the DMG too, so Gatekeeper accepts the

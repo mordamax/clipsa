@@ -67,7 +67,7 @@ The repository is public and the release workflow holds keys that could ship cod
 - Secrets and inputs reach scripts through environment variables, never through `${{ }}` text substitution into shell code.
 
 **What code runs**
-- Every action is pinned to a full commit SHA, the repository requires SHA pinning, and only GitHub-owned actions plus `tauri-apps/tauri-action`, `dtolnay/rust-toolchain`, `Swatinem/rust-cache`, `pnpm/action-setup` and `ossf/scorecard-action` are allowed. Dependabot proposes updates to the pins.
+- Every action is pinned to a full commit SHA, the repository requires SHA pinning, and only GitHub-owned actions plus `tauri-apps/tauri-action`, `dtolnay/rust-toolchain`, `Swatinem/rust-cache`, `pnpm/action-setup`, `ossf/scorecard-action` and, for Windows signing, `signpath/github-action-submit-signing-request` are allowed. Dependabot proposes updates to the pins.
 - Dependencies install from the committed lockfiles (`pnpm install --frozen-lockfile`, `Cargo.lock`). Release and App Store builds use no caches, so nothing written by an earlier run can leak into a signed build.
 - Dependabot alerts, Dependabot security updates, secret scanning and push protection are enabled.
 
@@ -81,8 +81,9 @@ The repository is public and the release workflow holds keys that could ship cod
 **Credential scope**
 - Notarization uses an App Store Connect API key with the Developer role, which can't read the Apple ID's iCloud data the way an app-specific password can.
 - The Homebrew tap and the release PR bot use one-hour tokens minted from the clipsa-release-bot GitHub App, installed on `mordamax/homebrew-tap` and `mordamax/clipsa` with Contents and Pull requests: write. Each job asks only for the repository and permissions it needs (the tap: its contents; the release PR: this repository's contents and pull requests). The App's private key is stored in two environments, `release` (tags only) and `release-pr` (`master` only); a leak of it could push to the tap or open PRs and create tags here, so it is rotated like the other keys below.
+- Windows signing uses a SignPath API token with the submitter role, stored in `release`. It can only submit artifacts uploaded by a GitHub-hosted run of this repository's workflows, and SignPath doesn't sign anything until the request is approved there by hand. The signing key itself stays in SignPath's HSM.
 
-**If a key leaks:** revoke the Developer ID certificate (developer.apple.com → Certificates) and the API key (App Store Connect → Users and Access → Integrations), regenerate the GitHub App's private key, and rotate the updater key by publishing one last update signed with the old key that carries the new public key.
+**If a key leaks:** revoke the Developer ID certificate (developer.apple.com → Certificates) and the API key (App Store Connect → Users and Access → Integrations), regenerate the GitHub App's private key, revoke the SignPath API token, and rotate the updater key by publishing one last update signed with the old key that carries the new public key.
 
 ## Reporting vulnerabilities
 
