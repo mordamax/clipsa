@@ -40,7 +40,7 @@ Everything you copy, searchable and one keystroke away. Encrypted on your device
 | **Windows** 10/11, x64 | [`-setup.exe`](https://clipsa.dev/download/windows) or [`.msi`](https://clipsa.dev/download/windows-msi) | Not code-signed yet, so SmartScreen may warn. |
 | **Linux** x64 | [`.deb`](https://clipsa.dev/download/linux-deb), [`.rpm`](https://clipsa.dev/download/linux-rpm) or [`.AppImage`](https://clipsa.dev/download/linux-appimage) | Needs a Secret Service provider (GNOME Keyring, KWallet) to store the key. |
 
-Every file comes from [GitHub Releases](https://github.com/mordamax/clipsa/releases); each release has a `SHA256SUMS` file to check downloads against. From the next release on, each installer also has a signed build provenance attestation: `gh attestation verify <file> -R mordamax/clipsa` checks that it was built by this repository's release workflow.
+Every file comes from [GitHub Releases](https://github.com/mordamax/clipsa/releases). Each release has a `SHA256SUMS` file to check downloads against, and each installer since 0.1.6 has a signed build provenance attestation: `gh attestation verify <file> -R mordamax/clipsa` checks that it was built by this repository's release workflow.
 
 On first launch Clipsa asks whether it may check GitHub Releases for updates. Updates are verified against a signing key built into the app before they are installed.
 
