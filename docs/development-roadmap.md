@@ -12,9 +12,14 @@
 - Quick picker on a configurable global hotkey, with keyboard navigation and paste into the previous app
 - Tray menu, close-to-tray, pause/resume monitoring, single instance, launch at login
 - Settings: limits, theme, compact mode, timestamps, page size, hotkey, exclusions
-- Signed auto-updates via GitHub Releases; CI on all three OSes; release workflow with macOS signing and notarization
+- Signed auto-updates via GitHub Releases; CI on all three OSes; release workflow with macOS signing and notarization, checksums and build provenance attestations
+- Fuzzing of clipboard payloads, stored items, settings and key loading on pull requests that change `src-tauri/`, and weekly
 - Pinned items and snippets (exempt from retention), paste as plain text, app lock (Touch ID / Windows Hello)
-- Sparkle-style update window with release notes; Mac App Store edition; Homebrew cask
+- Sparkle-style update window with release notes; Homebrew cask
+
+## In progress
+
+- Mac App Store edition (in App Review)
 
 ## Next
 
