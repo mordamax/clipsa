@@ -35,6 +35,7 @@ Clipsa is a single Tauri 2 app. The Rust backend does clipboard monitoring, encr
 | `settings.rs` | `AppSettings` model, defaults, validation, persistence, and applying changes (hotkey re-registration, autostart, monitoring toggle). |
 | `error.rs` | Error type. Commands reject with a plain string. |
 | `updater.rs` | Direct-download builds only (`self-update` feature): creates the hidden "Software Update" window, shows it (`show_updater`, tray "Check for Updates…") and saves its choices (`update_updater_settings`, allowed while locked). |
+| `fuzz.rs` | Only with the `fuzz` feature: entry points for the fuzz targets in `src-tauri/fuzz/` (see [Fuzzing](./contributing.md#fuzzing)). |
 
 ## Data flow
 
@@ -69,6 +70,7 @@ clipsa/
 ├── src/                          # SvelteKit SPA (see Frontend above)
 ├── src-tauri/
 │   ├── src/                      # Rust backend (see Backend modules above)
+│   ├── fuzz/                     # cargo-fuzz targets
 │   ├── capabilities/             # Tauri permission capabilities
 │   ├── appstore/                 # Mac App Store Info.plist and entitlements template
 │   ├── tauri.conf.json           # App config (the version comes from Cargo.toml)
@@ -81,5 +83,5 @@ clipsa/
 ├── .changes/                     # Release notes waiting for the next release (covector)
 ├── CHANGELOG.md                  # Release notes (published with each release)
 ├── AGENTS.md, CLAUDE.md          # Instructions for AI coding agents (CLAUDE.md imports AGENTS.md)
-└── .github/workflows/            # ci.yml, release-pr.yml, release.yml, appstore.yml, site*.yml
+└── .github/workflows/            # ci.yml, fuzz.yml, scorecard.yml, release-pr.yml, release.yml, appstore.yml, site*.yml
 ```

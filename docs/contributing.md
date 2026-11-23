@@ -40,6 +40,16 @@ cargo test --all-targets --features self-update
 
 New functionality comes with tests that check its behaviour, and a bug fix comes with a test that fails without the fix. Rust tests live next to the code in `#[cfg(test)]` modules. Tests must never use the real OS keychain. Construct crypto/storage with an injected key and a temporary directory (`tempfile`).
 
+## Fuzzing
+
+`src-tauri/fuzz/` contains [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz) targets for the code that reads clipboard values, stored items, settings changes and keys: `snapshot`, `decode`, `settings` and `crypto`. They call the functions in `src-tauri/src/fuzz.rs` (the `fuzz` feature). The **Fuzz** workflow runs each target for a minute on pull requests that change `src-tauri/`, and for ten minutes every week. A crash fails the run and attaches the input that caused it as the artifact `fuzz-crashes`. To run a target locally (needs nightly Rust and `cargo install cargo-fuzz`; on macOS add `-s none` after `run`, as AddressSanitizer builds don't link there):
+
+```bash
+cd src-tauri
+cargo +nightly fuzz run settings
+cargo +nightly fuzz run settings fuzz/artifacts/settings/<crash file>   # reproduce a crash
+```
+
 ## Guidelines
 
 - Keep the backend⇄frontend contract consistent. Command args and payloads are snake_case, and commands reject with a plain string. If you change a command, update both `src-tauri/src/lib.rs` and its callers in `src/`.
